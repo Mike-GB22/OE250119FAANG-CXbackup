@@ -8,7 +8,7 @@ import java.util.stream.Stream;
 public class UserFilterByExperienceMoreThan implements UserFilter {
     @Override
     public boolean isApplicable(UserFilterDto presetDto) {
-        return presetDto.getExperienceMoreThan() > 0;
+        return presetDto.getExperienceMoreThan() != null && presetDto.getExperienceMoreThan() > 0;
     }
 
     @Override
