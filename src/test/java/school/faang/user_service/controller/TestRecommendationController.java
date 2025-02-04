@@ -5,7 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import school.faang.user_service.controller.recommendation.RecommendationController;
 import school.faang.user_service.dto.recommendation.RecommendationDto;
 import school.faang.user_service.dto.recommendation.SkillOfferDto;
 import school.faang.user_service.exception.DataValidationException;
@@ -26,6 +28,14 @@ public class TestRecommendationController {
     @InjectMocks
     private RecommendationController recommendationController;
 
+    @Test
+    public void testRecommendationDtoContentIsValid() {
+        Mockito.when(recommendationService.create(Mockito.any())).thenReturn(null);
+        recommendationController.giveRecommendation()
+        Assert. 
+
+
+    }
     @Test
     public void testRecommendationDtoContentIsInvalid() {
         Assert.assertThrows(DataValidationException.class,
