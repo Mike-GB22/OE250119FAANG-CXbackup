@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import school.faang.user_service.controller.recommendation.RecommendationController;
 import school.faang.user_service.dto.recommendation.RecommendationDto;
 import school.faang.user_service.dto.recommendation.SkillOfferDto;
+import school.faang.user_service.entity.recommendation.Recommendation;
 import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.service.RecommendationService;
 
@@ -30,10 +31,17 @@ public class TestRecommendationController {
 
     @Test
     public void testRecommendationDtoContentIsValid() {
-        Mockito.when(recommendationService.create(Mockito.any())).thenReturn(null);
-        recommendationController.giveRecommendation()
-        Assert. 
-
+//        Mockito.when(recommendationService.create(Mockito.any())).thenReturn(null);
+//        recommendationController.giveRecommendation(new RecommendationDto())
+        RecommendationDto recommendationDto1 = new RecommendationDto(
+                1L,
+                1L,
+                2L,
+                "SQL",
+                new ArrayList<SkillOfferDto>(),
+                LocalDateTime.now());
+        Mockito.when(recommendationController.giveRecommendation(recommendationDto1)).thenReturn(recommendationDto1);
+        Mockito.verify(recommendationService.create(recommendationDto1));
 
     }
     @Test

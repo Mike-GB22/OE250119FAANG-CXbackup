@@ -6,7 +6,7 @@ import lombok.Data;
 @AllArgsConstructor
 @Data
 public class SkillOfferDto {
-    Long id;
+    private Long id;
     private String title;
     private Long skillId;
     private Long receiverUserId;

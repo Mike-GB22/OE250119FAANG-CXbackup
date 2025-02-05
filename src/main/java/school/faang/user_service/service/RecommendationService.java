@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import school.faang.user_service.dto.recommendation.RecommendationDto;
 import school.faang.user_service.dto.recommendation.SkillOfferDto;
@@ -25,6 +24,8 @@ import java.util.Optional;
 @Service
 @AllArgsConstructor
 public class RecommendationService {
+    private static final String SKILLS_PRESENCE_ERROR = "Skills are not presented in system ";
+    private static final String RECOMMENDATION_FREQUENCY_ERROR = "recommendation was given less than 6 months ago";
     private final RecommendationRepository recommendationRepository;
     private final SkillOfferRepository skillOfferRepository;
     private final SkillRepository skillRepository;
@@ -33,39 +34,19 @@ public class RecommendationService {
     private static final int PAGE_NUMBER = 0;
     private static final int PAGE_SIZE = 10;
 
-    public RecommendationDto create(RecommendationDto recommendation) {
-        // автор дает рекомендацию не раньше, чем через 6 месяцев после его последней рекомендации этому пользователю.
-        // Также проверить, что навыки, предлагаемые в рекомендации существуют в системе.
+
+    public RecommendationDto create(RecommendationDto recommendationDto) {
+
         Long newRecommendationId;
-        if (LocalDateTime.now().minusMonths(6).isAfter(getTimeOfLastRecommendation(recommendation))
-                && recommendationsArePresentedInSystem(recommendation.getSkillOffers())) {
+        if (LocalDateTime.now().minusMonths(6).isAfter(getTimeOfLastRecommendation(recommendationDto))
+                && recommendationsArePresentedInSystem(recommendationDto.getSkillOffers())) {
 
-            newRecommendationId = saveRecommendation(recommendation);
-            // Сохранить предложенные в рекомендации скиллы в репозиторий SKillOfferRepository используя его метод create
-            List<SkillOfferDto> skillOfferDtos = recommendation.getSkillOffers();
-            if (!skillOfferDtos.isEmpty()) {
-                for (SkillOfferDto skill : skillOfferDtos) {
-                    saveSkillOffers(skill.getSkillId(), newRecommendationId);
-                }
+            newRecommendationId = saveRecommendation(recommendationDto);
+            List<SkillOfferDto> skillOfferDtos = recommendationDto.getSkillOffers();
 
-                // Если у пользователя, которому дают рекомендацию, такой скилл уже есть, то добавить автора рекомендации гарантом к скиллу,
-                // который он предлагает, если этот автор еще не стоит там гарантом.
-                List<Skill> userOldSkills = skillRepository.findAllByUserId(recommendation.getReceiverId());
-                List<Skill> allSkillsGuaranteedToUserByGuarantee = userSkillGuaranteeRepository
-                        .findAllSkillsGuaranteedToUserByGuarantee(
-                                recommendation.getReceiverId(),
-                                recommendation.getAuthorId());
-                for (SkillOfferDto skill : skillOfferDtos) {
-                    if (userOldSkills.contains(skill)) {
-                        if (!allSkillsGuaranteedToUserByGuarantee.contains(skill)) {
-                            addGuarantorToSkill(recommendation, skill);
-                        }
-                    } else { // добавление нового скила юзеру и прикрепление гаранта
-                        skillRepository.assignSkillToUser(skill.getSkillId(), recommendation.getReceiverId());
-                        addGuarantorToSkill(recommendation, skill);
-                    }
-                }
-            }
+            saveSkillOffers(skillOfferDtos, newRecommendationId);
+            addSkillAndAddGuarantor(recommendationDto, newRecommendationId);
+
             Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(newRecommendationId);
             return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
         } else {
@@ -84,39 +65,21 @@ public class RecommendationService {
                     recommendationDto.getContent());
 
             List<SkillOfferDto> skillOfferDtos = recommendationDto.getSkillOffers();
-            if (!skillOfferDtos.isEmpty()) {
-                skillOfferRepository.deleteAllByRecommendationId(recommendationDto.getId());
+            saveSkillOffers(skillOfferDtos, recommendationDto.getId());
+            addSkillAndAddGuarantor(recommendationDto, recommendationDto.getId());
 
-                // Если у пользователя, которому дают рекомендацию, такой скилл уже есть, то добавить автора рекомендации гарантом к скиллу,
-                // который он предлагает, если этот автор еще не стоит там гарантом.
-                List<Skill> userOldSkills = skillRepository.findAllByUserId(recommendationDto.getReceiverId());
-                List<Skill> allSkillsGuaranteedToUserByGuarantee = userSkillGuaranteeRepository
-                        .findAllSkillsGuaranteedToUserByGuarantee(
-                                recommendationDto.getReceiverId(),
-                                recommendationDto.getAuthorId());
-                for (SkillOfferDto skill : skillOfferDtos) {
-                    if (userOldSkills.contains(skill)) {
-                        if (!allSkillsGuaranteedToUserByGuarantee.contains(skill)) {
-                            addGuarantorToSkill(recommendationDto, skill);
-                        }
-                    } else { // добавление нового скила юзеру и прикрепление гаранта
-                        skillRepository.assignSkillToUser(skill.getSkillId(), recommendationDto.getReceiverId());
-                        addGuarantorToSkill(recommendationDto, skill);
-                    }
-                }
-            }
+            Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(recommendationDto.getId());
+            return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
         } else {
-            throw new DataValidationException("Skills are not presented in system " +
-                    "or recommendation was given less than 6 months ago ");
+            throw new DataValidationException(SKILLS_PRESENCE_ERROR + "or" + RECOMMENDATION_FREQUENCY_ERROR);
         }
-        Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(recommendationDto.getId());
-        return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
     }
 
     /**
      * - Removes skill offers from "skill_offer" table to keep the table consistent
      * - Removes recommendation from "recommendation" table
      * - Does not remove guarntor from skills - doesn't delete lines from "user_skill_guarantee" table.(To brainstorm)
+     *
      * @param id - id of recommendation to remove
      */
     public void delete(long id) {
@@ -151,6 +114,27 @@ public class RecommendationService {
         return true;
     }
 
+    private void addSkillAndAddGuarantor(RecommendationDto recommendationDto, long newRecommendationId) {
+        List<SkillOfferDto> skillOfferDtos = recommendationDto.getSkillOffers();
+        if (!skillOfferDtos.isEmpty()) {
+            List<Skill> userOldSkills = skillRepository.findAllByUserId(recommendationDto.getReceiverId());
+            List<Skill> allSkillsGuaranteedToUserByGuarantee = userSkillGuaranteeRepository
+                    .findAllSkillsGuaranteedToUserByGuarantee(
+                            recommendationDto.getReceiverId(),
+                            recommendationDto.getAuthorId());
+            for (SkillOfferDto skill : skillOfferDtos) {
+                if (userOldSkills.contains(skill)) {
+                    if (!allSkillsGuaranteedToUserByGuarantee.contains(skill)) {
+                        addGuarantorToSkill(recommendationDto, skill);
+                    }
+                } else { // добавление нового скила юзеру и прикрепление гаранта
+                    skillRepository.assignSkillToUser(skill.getSkillId(), recommendationDto.getReceiverId());
+                    addGuarantorToSkill(recommendationDto, skill);
+                }
+            }
+        }
+    }
+
     /**
      * Returns time of last recommendation from DB created by recommendationDto.authorId to recommendationDto.receiverId
      *
@@ -162,7 +146,7 @@ public class RecommendationService {
         Optional<Recommendation> recommendation = recommendationRepository.findFirstByAuthorIdAndReceiverIdOrderByCreatedAtDesc(
                 recommendationDto.getAuthorId(),
                 recommendationDto.getReceiverId());
-        return recommendation.map(Recommendation::getCreatedAt).orElse(LocalDateTime.of(0, 1, 1, 0, 0));
+        return recommendation.map(Recommendation::getUpdatedAt).orElse(LocalDateTime.of(0, 1, 1, 0, 0));
     }
 
     private Long saveRecommendation(RecommendationDto recommendationDto) {
@@ -171,8 +155,10 @@ public class RecommendationService {
                 recommendationDto.getContent());
     }
 
-    private void saveSkillOffers(Long skillId, Long newRecommendationId) {
-        skillOfferRepository.create(skillId, newRecommendationId);
+    private void saveSkillOffers(List<SkillOfferDto> skillOfferDtos, Long newRecommendationId) {
+        for (SkillOfferDto skillOfferDto : skillOfferDtos) {
+            skillOfferRepository.create(skillOfferDto.getSkillId(), newRecommendationId);
+        }
     }
 
 
