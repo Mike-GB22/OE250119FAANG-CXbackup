@@ -1,9 +1,12 @@
 package school.faang.user_service.service.recommendation;
 
+
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import school.faang.user_service.dto.RequestFilterDto;
 import school.faang.user_service.entity.RequestStatus;
+import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.recommendation.RecommendationRequest;
 import school.faang.user_service.repository.recommendation.RecommendationRequestRepository;
 import school.faang.user_service.repository.recommendation.SkillRequestRepository;
@@ -11,6 +14,7 @@ import school.faang.user_service.repository.recommendation.SkillRequestRepositor
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -19,8 +23,7 @@ public class RecommendationRequestService {
     private final RecommendationRequestRepository recommendationRequestRepository;
     private final SkillRequestRepository skillRequestRepository;
 
-    public RecommendationRequest create(RecommendationRequest recommendationRequest) {
-        validateRecommendationRequest(recommendationRequest);
+    public RecommendationRequest create(@NonNull RecommendationRequest recommendationRequest) {
         RecommendationRequest savedRequest = recommendationRequestRepository.save(recommendationRequest);
         skillRequestRepository.saveAll(savedRequest.getSkills());
         return savedRequest;
@@ -28,11 +31,12 @@ public class RecommendationRequestService {
 
     public List<RecommendationRequest> getRequests(RequestFilterDto filter) {
         return recommendationRequestRepository.findAll().stream()
-                .filter(request -> filter.getStatus() == null || request.getStatus() == filter.getStatus())
-                .filter(request -> filter.getRequesterId() == null || Objects.equals(
-                        request.getRequester() != null ? request.getRequester().getId() : null, filter.getRequesterId()))
-                .filter(request -> filter.getReceiverId() == null || Objects.equals(
-                        request.getReceiver() != null ? request.getReceiver().getId() : null, filter.getReceiverId()))
+                .filter(request -> filter.getRequesterId() == null ||
+                        Objects.equals(Optional.ofNullable(request.getRequester()).map(User::getId).orElse(null),
+                                filter.getRequesterId()))
+                .filter(request -> filter.getReceiverId() == null ||
+                        Objects.equals(Optional.ofNullable(request.getReceiver()).map(User::getId).orElse(null),
+                                filter.getReceiverId()))
                 .toList();
     }
 
