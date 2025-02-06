@@ -7,6 +7,7 @@ import faang.school.projectservice.model.ProjectVisibility;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 
 @Component
 public class SubProjectValidator {
@@ -27,10 +28,12 @@ public class SubProjectValidator {
     }
 
     public void childCompleted(List<Project> projects) {
-        for (Project project : projects) {
-            if ((project.getStatus()).equals(ProjectStatus.COMPLETED) ||
-                    (project.getStatus()).equals(ProjectStatus.CANCELLED)) {
-                throw new DataValidationException("Project can't be closed");
+        if (projects != null) {
+            for (Project project : projects) {
+                if (!(Objects.equals(project.getStatus(), ProjectStatus.COMPLETED)) &&
+                        !(Objects.equals(project.getStatus(), ProjectStatus.CANCELLED))) {
+                    throw new DataValidationException("Project can't be closed");
+                }
             }
         }
     }

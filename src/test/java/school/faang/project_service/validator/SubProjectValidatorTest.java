@@ -2,6 +2,7 @@ package school.faang.project_service.validator;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import faang.school.projectservice.exception.DataValidationException;
 import faang.school.projectservice.model.Project;
 import faang.school.projectservice.model.ProjectStatus;
 import faang.school.projectservice.model.ProjectVisibility;
@@ -27,15 +28,16 @@ public class SubProjectValidatorTest {
     }
 
     @Test
-    public void testCanBeParentProject_ShouldThrowException_WhenInvalidParent() {
+    public void testInvalidForParent() {
         parentProject.setParentProject(new Project());
         parentProject.setStatus(ProjectStatus.COMPLETED);
 
-        assertThrows(IllegalArgumentException.class, () -> subProjectValidator.canBeParentProject(parentProject));
+        assertThrows(DataValidationException.class,
+                () -> subProjectValidator.canBeParentProject(parentProject));
     }
 
     @Test
-    void testCanBeParentProject_ShouldNotThrowException_WhenValidParent() {
+    void testValidForParent() {
         parentProject.setParentProject(null);
         parentProject.setStatus(ProjectStatus.CREATED);
 
@@ -43,31 +45,33 @@ public class SubProjectValidatorTest {
     }
 
     @Test
-    public void testShouldBePublic_ShouldThrowException_WhenProjectIsPrivate() {
+    public void testShouldBePublicFail() {
         parentProject.setVisibility(ProjectVisibility.PRIVATE);
 
-        assertThrows(IllegalArgumentException.class, () -> subProjectValidator.shouldBePublic(parentProject));
+        assertThrows(DataValidationException.class,
+                () -> subProjectValidator.shouldBePublic(parentProject));
     }
 
     @Test
-    public void testShouldBePublic_ShouldNotThrowException_WhenProjectIsPublic() {
+    public void testProjectIsPublic() {
         parentProject.setVisibility(ProjectVisibility.PUBLIC);
 
         assertDoesNotThrow(() -> subProjectValidator.shouldBePublic(parentProject));
     }
 
     @Test
-    public void testChildCompleted_ShouldThrowException_WhenChildNotCompletedOrCancelled() {
+    public void testChildNotCompleted() {
         Project childProject = new Project();
         childProject.setStatus(ProjectStatus.CREATED);
         List<Project> children = new ArrayList<>();
         children.add(childProject);
 
-        assertThrows(IllegalArgumentException.class, () -> subProjectValidator.childCompleted(children));
+        assertThrows(DataValidationException.class,
+                () -> subProjectValidator.childCompleted(children));
     }
 
     @Test
-    public void testChildCompleted_ShouldNotThrowException_WhenAllChildrenCompletedOrCancelled() {
+    public void testChildCompleted() {
         Project childProject1 = new Project();
         childProject1.setStatus(ProjectStatus.COMPLETED);
 

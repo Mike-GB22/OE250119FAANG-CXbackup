@@ -11,12 +11,12 @@ public class NameProjectFilter implements FilterProjects {
 
         @Override
         public boolean isApplicable(FilterSubProjectDto filters) {
-            return filters.name() != null;
+            return filters.getName() != null;
         }
 
         @Override
         public Stream<Project> apply(Stream<Project> subProjects, FilterSubProjectDto filters) {
             return subProjects
-                    .filter(subs -> subs.getName().contains(filters.name()));
+                    .filter(subs -> subs.getName().contains(filters.getName()));
         }
 }

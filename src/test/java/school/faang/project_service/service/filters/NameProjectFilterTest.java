@@ -2,8 +2,6 @@ package school.faang.project_service.service.filters;
 
 import faang.school.projectservice.dto.project.FilterSubProjectDto;
 import faang.school.projectservice.model.Project;
-import faang.school.projectservice.model.ProjectStatus;
-import faang.school.projectservice.model.ProjectVisibility;
 import faang.school.projectservice.service.filters.NameProjectFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +23,10 @@ public class NameProjectFilterTest {
     @BeforeEach
     public void init() {
         nameFilter = new NameProjectFilter();
-        filterDtoFail = new FilterSubProjectDto("", null, null);
-        filterDto = new FilterSubProjectDto("Java", ProjectStatus.CREATED, ProjectVisibility.PUBLIC);
+        filterDtoFail = new FilterSubProjectDto();
+        filterDtoFail.setName(null);
+        filterDto = new FilterSubProjectDto();
+        filterDto.setName("Java");
         projects = Stream.of(
                 Project.builder().name("Learn Java coding").build(),
                 Project.builder().name("Java interview session").build(),

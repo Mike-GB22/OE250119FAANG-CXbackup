@@ -46,17 +46,18 @@ public class SubProjectController {
     public ProjectDto updateSubProject(@RequestBody UpdateSubProjectDto updateSubProjectDto) {
         Long id = updateSubProjectDto.id();
         projectValidator.validateProjectIdNotNull(id);
+        projectValidator.validateAllParametersNotNull(updateSubProjectDto.status(), updateSubProjectDto.visibility());
 
         return projectMapper.toProjectDto(
                 projectService.updateSubProject(id, updateSubProjectDto.status(), updateSubProjectDto.visibility()));
     }
 
     @PostMapping("/{id}")
-    public List<ProjectDto> getSubProjects(@PathVariable Long projectId,
+    public List<ProjectDto> getSubProjects(@PathVariable Long id,
                                            @RequestParam(defaultValue = "20") Integer limit,
                                            @RequestBody FilterSubProjectDto filtersDto) {
-        projectValidator.validateProjectIdNotNull(projectId);
+        projectValidator.validateProjectIdNotNull(id);
 
-        return projectMapper.toProjectsList(projectService.getSubProjects(projectId, filtersDto, limit));
+        return projectMapper.toProjectsList(projectService.getSubProjects(id, filtersDto, limit));
     }
 }

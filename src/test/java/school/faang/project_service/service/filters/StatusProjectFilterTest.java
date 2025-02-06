@@ -3,7 +3,6 @@ package school.faang.project_service.service.filters;
 import faang.school.projectservice.dto.project.FilterSubProjectDto;
 import faang.school.projectservice.model.Project;
 import faang.school.projectservice.model.ProjectStatus;
-import faang.school.projectservice.model.ProjectVisibility;
 import faang.school.projectservice.service.filters.StatusProjectFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,27 +22,28 @@ public class StatusProjectFilterTest  {
 
     private StatusProjectFilter statusFilter;
     private FilterSubProjectDto filterDto;
+    private FilterSubProjectDto filterNoApplyDto;
 
     @BeforeEach
     public void init() {
         statusFilter = new StatusProjectFilter();
-        filterDto = new FilterSubProjectDto("name", ProjectStatus.CREATED, ProjectVisibility.PUBLIC);
+        filterDto = new FilterSubProjectDto();
+        filterDto.setStatus(ProjectStatus.CREATED);
+        filterNoApplyDto = new FilterSubProjectDto();
     }
 
     @Test
     public void testIsNotApplicable() {
-        assertFalse(statusFilter.isApplicable(filterDto));
+        assertFalse(statusFilter.isApplicable(filterNoApplyDto));
     }
 
     @Test
     public void testIsApplicable() {
-        //filterDto.status(ProjectStatus.IN_PROGRESS);
         assertTrue(statusFilter.isApplicable(filterDto));
     }
 
     @Test
     public void testApplyFilter() {
-        //filterDto.setStatus(ProjectStatus.CANCELLED);
         Stream<Project> projects = Stream.of(
                 Project.builder().status(ProjectStatus.CREATED).build(),
                 Project.builder().status(ProjectStatus.IN_PROGRESS).build(),

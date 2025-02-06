@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import faang.school.projectservice.model.stage.Stage;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
@@ -58,10 +59,12 @@ public class Project {
     @Column(name = "owner_id")
     private Long ownerId;
 
+    @JsonIgnore
     @ManyToOne(cascade={CascadeType.ALL})
     @JoinColumn(name="parent_project_id")
     private Project parentProject;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "parentProject", fetch = FetchType.EAGER)
     private List<Project> children;
 

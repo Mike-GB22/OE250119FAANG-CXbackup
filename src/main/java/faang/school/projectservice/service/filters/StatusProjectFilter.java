@@ -12,12 +12,12 @@ public class StatusProjectFilter implements FilterProjects {
 
     @Override
     public boolean isApplicable(FilterSubProjectDto filters) {
-        return filters.status()!= null;
+        return filters.getStatus()!= null;
     }
 
     @Override
     public Stream<Project> apply(Stream<Project> subProjects, FilterSubProjectDto filters) {
         return subProjects
-                .filter(subs -> Objects.equals(subs.getStatus(), filters.status()));
+                .filter(subs -> Objects.equals(subs.getStatus(), filters.getStatus()));
     }
 }

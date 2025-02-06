@@ -1,7 +1,6 @@
 package faang.school.projectservice.service;
 
 import faang.school.projectservice.dto.project.FilterSubProjectDto;
-import faang.school.projectservice.mapper.ProjectMapper;
 import faang.school.projectservice.model.Project;
 import faang.school.projectservice.model.ProjectStatus;
 import faang.school.projectservice.model.ProjectVisibility;
@@ -12,9 +11,9 @@ import faang.school.projectservice.validator.SubProjectValidator;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.mapstruct.Mapping;
 import org.springframework.stereotype.Service;
 
 import java.util.stream.Stream;
@@ -24,30 +23,23 @@ import java.util.stream.Stream;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final ProjectMapper projectMapper;
     private final SubProjectValidator subProjectValidator;
     private final ProjectValidator projectValidator;
     private final List<FilterProjects> projectFilters;
 
     public Project createSubProject(Long parentId, Project subProject) {
-        Optional<Project> parentProject = projectRepository.findById(parentId);
-        projectValidator.doesProjectExist(parentProject);
-        subProjectValidator.canBeParentProject(parentProject.get());
+        Optional<Project> optParentProject = projectRepository.findById(parentId);
+        projectValidator.doesProjectExist(optParentProject);
 
-        return projectRepository.save(mappingNewEntity(subProject, parentProject.get()));
-    }
+        Project parentProject = optParentProject.get();
+        subProjectValidator.canBeParentProject(parentProject);
 
-    private Project mappingNewEntity(Project subProject, Project parentProject) {
-        Project newProject = new Project();
-        newProject.setName(subProject.getName());
-        newProject.setDescription(subProject.getDescription());
-        newProject.setOwnerId(subProject.getOwnerId());
-        newProject.setParentProject(parentProject);
-        newProject.setVisibility(parentProject.getVisibility());
-        newProject.setStatus(ProjectStatus.CREATED);
-        newProject.setCreatedAt(LocalDateTime.now());
-        newProject.setChildren(List.of());
-        return newProject;
+        subProject.setParentProject(parentProject);
+        subProject.setVisibility(parentProject.getVisibility());
+        subProject.setStatus(ProjectStatus.CREATED);
+        subProject.setCreatedAt(LocalDateTime.now());
+
+        return projectRepository.save(subProject);
     }
 
 
@@ -56,15 +48,19 @@ public class ProjectService {
         projectValidator.doesProjectExist(project);
 
         Project updateProject = project.get();
-        updateProject.setVisibility(visibility);
-        setUpChildVisibility(updateProject, visibility);
-
-        if (status.equals(ProjectStatus.COMPLETED)) {
-            subProjectValidator.childCompleted(updateProject.getChildren());
-            //momentService.createMoment(id, "name", updateProject.getChildren())
+        if (visibility != null) {
+            updateProject.setVisibility(visibility);
+            setUpChildVisibility(updateProject, visibility);
         }
-        updateProject.setStatus(status);
-        updateProject.setUpdatedAt(LocalDateTime.now());
+
+        if (status != null) {
+            if (status.equals(ProjectStatus.COMPLETED)) {
+                subProjectValidator.childCompleted(updateProject.getChildren());
+                //momentService.createMoment(id, "name", updateProject.getChildren())
+            }
+            updateProject.setStatus(status);
+            updateProject.setUpdatedAt(LocalDateTime.now());
+        }
 
         return projectRepository.save(updateProject);
     }
@@ -86,6 +82,7 @@ public class ProjectService {
         return projectFilters.stream()
                 .filter(filtr -> filtr.isApplicable(filters))
                 .flatMap(filtr -> filtr.apply(subProjects, filters))
+                .filter(project -> !Objects.equals(project.getVisibility(), ProjectVisibility.PRIVATE))
                 .limit(limitList)
                 .toList();
     }

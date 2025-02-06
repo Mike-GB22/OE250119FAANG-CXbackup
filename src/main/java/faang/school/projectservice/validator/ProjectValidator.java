@@ -1,6 +1,8 @@
 package faang.school.projectservice.validator;
 
+import faang.school.projectservice.exception.DataValidationException;
 import faang.school.projectservice.model.Project;
+import faang.school.projectservice.model.ProjectStatus;
 import faang.school.projectservice.model.ProjectVisibility;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +22,17 @@ public class ProjectValidator {
 
     public void doesProjectExist(Optional<Project> project) {
         if (project.isEmpty()) {
-            throw new EntityNotFoundException("Project not found");
+            throw new DataValidationException("Project not found");
         }
     }
 
     public boolean isPublicProject(Project project) {
         return project.getVisibility().equals(ProjectVisibility.PUBLIC);
+    }
+
+    public void validateAllParametersNotNull(ProjectStatus status, ProjectVisibility visibility) {
+        if (status == null && visibility == null) {
+            throw new DataValidationException("Updating parameters required");
+        }
     }
 }
