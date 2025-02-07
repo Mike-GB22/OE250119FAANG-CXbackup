@@ -13,11 +13,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.stream.Stream;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
@@ -32,6 +34,7 @@ public class ProjectService {
         projectValidator.doesProjectExist(optParentProject);
 
         Project parentProject = optParentProject.get();
+        subProjectValidator.shouldBePublic(parentProject);
         subProjectValidator.canBeParentProject(parentProject);
 
         subProject.setParentProject(parentProject);
@@ -42,36 +45,34 @@ public class ProjectService {
         return projectRepository.save(subProject);
     }
 
-
     public Project updateSubProject(Long id, ProjectStatus status, ProjectVisibility visibility) {
-        Optional<Project> project = projectRepository.findById(id);
-        projectValidator.doesProjectExist(project);
+        Optional<Project> optSubProject = projectRepository.findById(id);
+        projectValidator.doesProjectExist(optSubProject);
 
-        Project updateProject = project.get();
+        Project subProject = optSubProject.get();
         if (visibility != null) {
-            updateProject.setVisibility(visibility);
-            setUpChildVisibility(updateProject, visibility);
+            subProject.setVisibility(visibility);
+            updateChildVisibility(subProject, visibility);
         }
 
         if (status != null) {
             if (status.equals(ProjectStatus.COMPLETED)) {
-                subProjectValidator.childCompleted(updateProject.getChildren());
+                subProjectValidator.childCompleted(subProject.getChildren());
                 //momentService.createMoment(id, "name", updateProject.getChildren())
             }
-            updateProject.setStatus(status);
-            updateProject.setUpdatedAt(LocalDateTime.now());
+            subProject.setStatus(status);
+            subProject.setUpdatedAt(LocalDateTime.now());
         }
 
-        return projectRepository.save(updateProject);
+        return projectRepository.save(subProject);
     }
 
-    private void setUpChildVisibility(Project project, ProjectVisibility visibility) {
+    private void updateChildVisibility(Project project, ProjectVisibility visibility) {
         List<Project> subProjects = project.getChildren();
         if (subProjects != null) {
             subProjects.forEach(subP -> subP.setVisibility(visibility));
         }
     }
-
 
     public List<Project> getSubProjects(Long id, FilterSubProjectDto filters, Integer limitList) {
         Optional<Project> parentProject = projectRepository.findById(id);
@@ -80,8 +81,10 @@ public class ProjectService {
 
         Stream<Project> subProjects = parentProject.get().getChildren().stream();
         return projectFilters.stream()
-                .filter(filtr -> filtr.isApplicable(filters))
-                .flatMap(filtr -> filtr.apply(subProjects, filters))
+                .filter(filter -> filter.isApplicable(filters))
+                .reduce(subProjects,
+                        (stream, filter) -> filter.apply(stream, filters),
+                        (stream1, stream2) -> stream1)
                 .filter(project -> !Objects.equals(project.getVisibility(), ProjectVisibility.PRIVATE))
                 .limit(limitList)
                 .toList();

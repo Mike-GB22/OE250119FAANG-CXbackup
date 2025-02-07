@@ -18,5 +18,6 @@ public record ProjectDto(
         ProjectVisibility visibility,
         List<ProjectDto> children,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {}
+        LocalDateTime updatedAt) {
+}
 
