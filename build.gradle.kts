@@ -15,13 +15,25 @@ repositories {
     mavenCentral()
 }
 jacoco {
-    toolVersion = "0.8.12" // Задаем версию инструмента JaCoCo
-    reportsDirectory.set(layout.buildDirectory.dir("customJacocoReportDir"))
+    toolVersion = "0.8.12"
+    reportsDirectory.set(file("C:/Users/sanct/Desktop/JacocoReports"))
 }
 
 tasks.test {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
+}
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVERED_PERCENTAGE"
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+    }
 }
 
 tasks.jacocoTestReport {
@@ -77,12 +89,6 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.2")
     testImplementation("org.assertj:assertj-core:3.24.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-}
-tasks.test {
-    finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
-}
-tasks.jacocoTestReport {
-    dependsOn(tasks.test) // tests are required to run before generating the report
 }
 
 tasks.withType<Test> {
