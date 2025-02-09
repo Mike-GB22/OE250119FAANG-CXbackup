@@ -18,6 +18,7 @@ import school.faang.user_service.service.mentorship.filters.RequestFilter;
 import school.faang.user_service.validator.mentorship.MentorshipRequestValidator;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -34,7 +35,7 @@ public class MentorshipRequestService {
 
     public MentorshipRequest requestMentorship(MentorshipRequest requestEntity) {
         long requesterId = requestEntity.getRequester().getId();
-        long receiverId = requestEntity.getRequester().getId();
+        long receiverId = requestEntity.getReceiver().getId();
 
         if (!requestValidator.validateLastRequestData(requesterId, receiverId)) {
             throw new DataValidationException("Too early for next mentorship request");
@@ -47,7 +48,12 @@ public class MentorshipRequestService {
             requestEntity.setRequester(requester);
             requestEntity.setReceiver(receiver);
 
-            requester.getSentMentorshipRequests().add(requestEntity);
+            List<MentorshipRequest> requests = requester.getSentMentorshipRequests();
+            if (requests == null) {
+                requests = new ArrayList<>();
+            }
+            requests.add(requestEntity);
+            requester.setSentMentorshipRequests(requests);
 
             userRepository.save(requester);
             return requestRepository.save(requestEntity);
