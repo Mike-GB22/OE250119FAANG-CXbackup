@@ -1,6 +1,8 @@
 package school.faang.user_service.controller;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,40 +23,92 @@ import java.util.ArrayList;
 public class TestRecommendationController {
 
     @Mock
-    private RecommendationDto recommendationDto;
-
-    @Mock
     private RecommendationService recommendationService;
 
     @InjectMocks
     private RecommendationController recommendationController;
 
-    @Test
-    public void testRecommendationDtoContentIsValid() {
-//        Mockito.when(recommendationService.create(Mockito.any())).thenReturn(null);
-//        recommendationController.giveRecommendation(new RecommendationDto())
-        RecommendationDto recommendationDto1 = new RecommendationDto(
+    private static RecommendationDto recommendationDtoValid;
+    private static RecommendationDto recommendationDtoInvalid;
+    private static long validId;
+    private static long invalidId;
+
+    @BeforeAll
+    static void setUp() {
+        recommendationDtoValid = new RecommendationDto(
                 1L,
                 1L,
                 2L,
                 "SQL",
                 new ArrayList<SkillOfferDto>(),
                 LocalDateTime.now());
-        Mockito.when(recommendationController.giveRecommendation(recommendationDto1)).thenReturn(recommendationDto1);
-        Mockito.verify(recommendationService.create(recommendationDto1));
+
+        recommendationDtoInvalid = new RecommendationDto(
+                1L,
+                1L,
+                2L,
+                "",
+                new ArrayList<SkillOfferDto>(),
+                LocalDateTime.now());
+       validId = 1;
+       invalidId = -2;
+    }
+
+    @Test
+    public void testGiveRecommendationDtoContentIsValid() {
+        recommendationController.giveRecommendation(recommendationDtoValid);
+        Mockito.verify(recommendationService, Mockito.times(1)).create(recommendationDtoValid);
 
     }
     @Test
-    public void testRecommendationDtoContentIsInvalid() {
+    public void testGiveRecommendationDtoContentIsNotValid() {
         Assert.assertThrows(DataValidationException.class,
-                () -> recommendationController.giveRecommendation(new RecommendationDto(
-                        1L,
-                        1L,
-                        2L,
-                        "",
-                        new ArrayList<SkillOfferDto>(),
-                        LocalDateTime.now())
-                ));
+                () -> recommendationController.giveRecommendation(recommendationDtoInvalid));
     }
 
+    @Test
+    public void testUpdateRecommendationDtoContentIsValid() {
+        recommendationController.updateRecommendation(recommendationDtoValid);
+        Mockito.verify(recommendationService, Mockito.times(1)).update(recommendationDtoValid);
+    }
+
+    @Test
+    public void testUpdateRecommendationDtoContentIsNotValid() {
+        Assert.assertThrows(DataValidationException.class,
+                () -> recommendationController.updateRecommendation(recommendationDtoInvalid));
+    }
+
+    @Test
+    public void testDeleteRecommendationIdValid() {
+        recommendationController.deleteRecommendation(validId);
+        Mockito.verify(recommendationService, Mockito.times(1)).delete(validId);
+    }
+
+    @Test
+    public void testDeleteRecommendationIdNotValid() {
+        Assert.assertThrows(DataValidationException.class,
+                () -> recommendationController.deleteRecommendation(invalidId));
+    }
+
+    @Test
+    public void testGetAllUserRecommendationsIdValid() {
+        recommendationController.getAllUserRecommendations(validId);
+        Mockito.verify(recommendationService, Mockito.times(1)).getAllUserRecommendations(validId);
+    }
+
+    @Test
+    public void testGetAllUserRecommendationsIdNotValid() {
+        Assert.assertThrows(DataValidationException.class,
+                () -> recommendationController.getAllUserRecommendations(invalidId));
+    }
+
+    @Test void testGetAllGivenRecommendationsIdValid() {
+        recommendationController.getAllGivenRecommendations(validId);
+        Mockito.verify(recommendationService, Mockito.times(1)).getAllGivenRecommendations(validId);
+    }
+
+    @Test void testGetAllGivenRecommendationsIdNotValid() {
+        Assert.assertThrows(DataValidationException.class,
+                () -> recommendationController.getAllGivenRecommendations(invalidId));
+    }
 }

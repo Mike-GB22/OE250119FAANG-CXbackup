@@ -2,6 +2,7 @@ package school.faang.user_service.repository.recommendation;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
+import school.faang.user_service.entity.Skill;
 import school.faang.user_service.entity.recommendation.SkillOffer;
 
 import java.util.List;
@@ -33,4 +34,11 @@ public interface SkillOfferRepository extends CrudRepository<SkillOffer, Long> {
             WHERE r.receiver.id = :userId
             """)
     List<SkillOffer> findAllByUserId(long userId);
+
+    @Query(value = """
+            SELECT so FROM SkillOffer so
+            WHERE so.recommendation.id = :recommendationId
+            """)
+    List<SkillOffer> findSkillsOfferedInRecommendation(long recommendationId);
+
 }

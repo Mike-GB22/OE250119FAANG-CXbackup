@@ -2,13 +2,18 @@ package school.faang.user_service.service;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NonNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
 import school.faang.user_service.dto.recommendation.RecommendationDto;
 import school.faang.user_service.dto.recommendation.SkillOfferDto;
 import school.faang.user_service.entity.Skill;
 import school.faang.user_service.entity.recommendation.Recommendation;
+import school.faang.user_service.entity.recommendation.SkillOffer;
 import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.mapper.RecommendationMapper;
 import school.faang.user_service.repository.SkillRepository;
@@ -26,10 +31,16 @@ import java.util.Optional;
 public class RecommendationService {
     private static final String SKILLS_PRESENCE_ERROR = "Skills are not presented in system ";
     private static final String RECOMMENDATION_FREQUENCY_ERROR = "recommendation was given less than 6 months ago";
+    private static final String RECOMMENDATION_NOT_FOUND = "recommendation is not found in DB";
+    @Autowired
     private final RecommendationRepository recommendationRepository;
+    @Autowired
     private final SkillOfferRepository skillOfferRepository;
+    @Autowired
     private final SkillRepository skillRepository;
+    @Autowired
     private final UserSkillGuaranteeRepository userSkillGuaranteeRepository;
+    @Autowired
     private final RecommendationMapper recommendationMapper;
     private static final int PAGE_NUMBER = 0;
     private static final int PAGE_SIZE = 10;
@@ -50,11 +61,17 @@ public class RecommendationService {
             Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(newRecommendationId);
             return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
         } else {
-            throw new DataValidationException("Skills are not presented in system " +
-                    "or recommendation was given less than 6 months ago ");
+            throw new DataValidationException(SKILLS_PRESENCE_ERROR + RECOMMENDATION_FREQUENCY_ERROR);
         }
     }
 
+    /**
+     * - updates only recommendation content of "recommendation" table
+     * - Does not update guarantors of skills - doesn't delete lines from "user_skill_guarantee" table.(To brainstorm)
+     * - Does not update skill offers from "skill_offer" table to keep the table consistent
+     * - Does not update skills from "user_skill" table to keep the table consistent
+     * @param recommendationDto - recommendation to update
+     */
     public RecommendationDto update(RecommendationDto recommendationDto) {
 
         if (LocalDateTime.now().minusMonths(6).isAfter(getTimeOfLastRecommendation(recommendationDto))
@@ -65,8 +82,7 @@ public class RecommendationService {
                     recommendationDto.getContent());
 
             List<SkillOfferDto> skillOfferDtos = recommendationDto.getSkillOffers();
-            saveSkillOffers(skillOfferDtos, recommendationDto.getId());
-            addSkillAndAddGuarantor(recommendationDto, recommendationDto.getId());
+            updateRecommendation(recommendationDto);
 
             Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(recommendationDto.getId());
             return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
@@ -76,15 +92,21 @@ public class RecommendationService {
     }
 
     /**
-     * - Removes skill offers from "skill_offer" table to keep the table consistent
      * - Removes recommendation from "recommendation" table
-     * - Does not remove guarntor from skills - doesn't delete lines from "user_skill_guarantee" table.(To brainstorm)
-     *
+     * - Removes skill offers from "skill_offer" table due to hibernate annotation
+     * - Does not remove guarantor from skills - doesn't delete lines from "user_skill_guarantee" table.(To brainstorm)
+     * - Does not remove skills from "user_skill" table to keep the table consistent
      * @param id - id of recommendation to remove
      */
+    @Transactional
     public void delete(long id) {
-        skillOfferRepository.deleteAllByRecommendationId(id);
-        recommendationRepository.deleteById(id);
+        Optional<Recommendation> optional = recommendationRepository.findById(id);
+        RecommendationDto recommendationDto = optional.map(recommendationMapper::toDto).orElse(null);
+        if(recommendationDto != null) {
+            recommendationRepository.deleteById(id);
+        } else {
+            throw new DataValidationException(RECOMMENDATION_NOT_FOUND);
+        }
     }
 
     public List<RecommendationDto> getAllUserRecommendations(long receiverId) {
@@ -105,7 +127,7 @@ public class RecommendationService {
                 .toList();
     }
 
-    private boolean recommendationsArePresentedInSystem(List<SkillOfferDto> skillOfferDtos) {
+    private boolean  recommendationsArePresentedInSystem(@NonNull List<SkillOfferDto> skillOfferDtos) {
         for (SkillOfferDto skill : skillOfferDtos) {
             if (!skillRepository.existsByTitle(skill.getTitle())) {
                 return false;
@@ -114,6 +136,7 @@ public class RecommendationService {
         return true;
     }
 
+    @Transactional
     private void addSkillAndAddGuarantor(RecommendationDto recommendationDto, long newRecommendationId) {
         List<SkillOfferDto> skillOfferDtos = recommendationDto.getSkillOffers();
         if (!skillOfferDtos.isEmpty()) {
@@ -127,7 +150,7 @@ public class RecommendationService {
                     if (!allSkillsGuaranteedToUserByGuarantee.contains(skill)) {
                         addGuarantorToSkill(recommendationDto, skill);
                     }
-                } else { // добавление нового скила юзеру и прикрепление гаранта
+                } else {
                     skillRepository.assignSkillToUser(skill.getSkillId(), recommendationDto.getReceiverId());
                     addGuarantorToSkill(recommendationDto, skill);
                 }
@@ -137,7 +160,6 @@ public class RecommendationService {
 
     /**
      * Returns time of last recommendation from DB created by recommendationDto.authorId to recommendationDto.receiverId
-     *
      * @param recommendationDto - an object of recommendation received from API
      * @return - date of last recommendation if recommendation exists in Database
      * - Jan 01 0 (BC) if there is no recommendation
@@ -156,14 +178,22 @@ public class RecommendationService {
     }
 
     private void saveSkillOffers(List<SkillOfferDto> skillOfferDtos, Long newRecommendationId) {
-        for (SkillOfferDto skillOfferDto : skillOfferDtos) {
-            skillOfferRepository.create(skillOfferDto.getSkillId(), newRecommendationId);
+        if(skillOfferDtos!=null) {
+            for (SkillOfferDto skillOfferDto : skillOfferDtos) {
+                skillOfferRepository.create(skillOfferDto.getSkillId(), newRecommendationId);
+            }
         }
     }
 
+    private void updateRecommendation(RecommendationDto recommendationDto) {
+        recommendationRepository.update(recommendationDto.getAuthorId(),
+                recommendationDto.getReceiverId(), recommendationDto.getContent());
+    }
 
+    @Transactional
     private void addGuarantorToSkill(RecommendationDto recommendationDto, SkillOfferDto skillOfferDto) {
-        userSkillGuaranteeRepository.create(recommendationDto.getId(),
+        userSkillGuaranteeRepository.create(
+                recommendationDto.getReceiverId(),
                 skillOfferDto.getSkillId(),
                 recommendationDto.getAuthorId());
     }
