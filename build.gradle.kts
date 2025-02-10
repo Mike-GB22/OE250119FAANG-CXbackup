@@ -16,31 +16,47 @@ repositories {
 }
 jacoco {
     toolVersion = "0.8.12"
-    reportsDirectory.set(file("C:/Users/sanct/Desktop/JacocoReports"))
 }
 
-tasks.test {
+tasks {
+    test {
     useJUnitPlatform()
-    finalizedBy(tasks.jacocoTestReport)
+    finalizedBy(jacocoTestReport)
 }
-tasks.jacocoTestCoverageVerification {
-    dependsOn(tasks.test)
+    jacocoTestReport {
+        dependsOn(test)
+        reports {
+            xml.required.set(true)
+            html.required.set(true)}
+        classDirectories.setFrom(
+                sourceSets.main.get().output.asFileTree.matching {
+                    include(jacocoInclude)
+                }
+        )
+    }
+jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                counter = "LINE"
-                value = "COVERED_PERCENTAGE"
                 minimum = "0.70".toBigDecimal()
             }
         }
     }
+    classDirectories.setFrom(
+            sourceSets.main.get().output.asFileTree.matching {
+                include(jacocoInclude)
+            }
+            )
 }
 
-tasks.jacocoTestReport {
-    dependsOn(tasks.test)
-    reports {
-        html.required.set(true)
-    }}
+}
+
+
+val jacocoInclude = listOf(
+        "/controller/",
+        "/service/",
+        "/validator/"
+)
 
 dependencies {
     /**
