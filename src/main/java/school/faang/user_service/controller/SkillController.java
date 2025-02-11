@@ -9,9 +9,7 @@ import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.mapper.SkillMapper;
 import school.faang.user_service.service.SkillService;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor

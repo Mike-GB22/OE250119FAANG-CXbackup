@@ -9,7 +9,7 @@ import school.faang.user_service.dto.mentorship.RequestFilterDto;
 import school.faang.user_service.entity.MentorshipRequest;
 import school.faang.user_service.entity.RequestStatus;
 import school.faang.user_service.entity.User;
-import school.faang.user_service.exceptions.DataValidationException;
+import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.mapper.mentorship.MentorshipRejectionMapper;
 import school.faang.user_service.mapper.mentorship.MentorshipRequestMapper;
 import school.faang.user_service.repository.UserRepository;
@@ -64,7 +64,9 @@ public class MentorshipRequestService {
         Stream<MentorshipRequest> mentorshipRequests = requestRepository.findAll().stream();
         return requestFilters.stream()
                 .filter(filter -> filter.isApplicable(filtersRequested))
-                .flatMap(filter -> filter.apply(mentorshipRequests, filtersRequested))
+                .reduce(mentorshipRequests,
+                        (stream, filter) -> filter.apply(stream, filtersRequested),
+                        (stream1, stream2) -> stream1)
                 .toList();
     }
 
@@ -88,11 +90,12 @@ public class MentorshipRequestService {
         return requestMapper.toDto(requestRepository.save(request));
     }
 
-    public void rejectRequest(long id, RejectionDto rejection) {
+    public MentorshipRequest rejectRequest(long id, RejectionDto rejection) {
         MentorshipRequest request = requestRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Request not found"));
 
         request.setStatus(RequestStatus.REJECTED);
         request.setRejectionReason(rejection.getRejectionReason());
+        return requestRepository.save(request);
     }
 }
