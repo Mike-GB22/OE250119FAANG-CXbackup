@@ -1,6 +1,6 @@
 package school.faang.user_service.controller.recommendation;
 
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,32 +10,38 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import school.faang.user_service.dto.recommendation.RecommendationDto;
 import school.faang.user_service.exception.DataValidationException;
+import school.faang.user_service.mapper.RecommendationMapper;
 import school.faang.user_service.service.RecommendationService;
 
 import java.util.List;
 
 @Controller
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
+@AllArgsConstructor
 public class RecommendationController {
     @Autowired
     RecommendationService recommendationService;
+
+    @Autowired
+    private final RecommendationMapper recommendationMapper;
+
     private static final String NEGATIVE_ID = "Id is negative";
 
     @PostMapping("/giverecommendation")
     @ResponseBody
-    public RecommendationDto giveRecommendation(@RequestBody RecommendationDto recommendation) {
-        if (recommendationDtoIsValid(recommendation)) {
-            return recommendationService.create(recommendation);
+    public RecommendationDto giveRecommendation(@RequestBody RecommendationDto recommendationDto) {
+        if (recommendationDtoIsValid(recommendationDto)) {
+            return recommendationService.create(recommendationMapper.toEntity(recommendationDto));
         } else {
             throw new DataValidationException("Content is empty");
         }
     }
 
-    @GetMapping("/updaterecommendation")
+    @PostMapping("/updaterecommendation")
     @ResponseBody
     public RecommendationDto updateRecommendation(@RequestBody RecommendationDto recommendationDto) {
         if (recommendationDtoIsValid(recommendationDto)) {
-            return recommendationService.update(recommendationDto);// Как вызывать? Solved   //? как-то вернуть  RecommentationDto object without using 'new'.
+            return recommendationService.update(recommendationMapper.toEntity(recommendationDto));
         } else {
             throw new DataValidationException("Content is empty");
         }

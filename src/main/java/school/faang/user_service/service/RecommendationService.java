@@ -8,9 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
 import school.faang.user_service.dto.recommendation.RecommendationDto;
-import school.faang.user_service.dto.recommendation.SkillOfferDto;
 import school.faang.user_service.entity.Skill;
 import school.faang.user_service.entity.recommendation.Recommendation;
 import school.faang.user_service.entity.recommendation.SkillOffer;
@@ -46,17 +44,17 @@ public class RecommendationService {
     private static final int PAGE_SIZE = 10;
 
 
-    public RecommendationDto create(RecommendationDto recommendationDto) {
+    public RecommendationDto create(Recommendation recommendation) {
 
         Long newRecommendationId;
-        if (LocalDateTime.now().minusMonths(6).isAfter(getTimeOfLastRecommendation(recommendationDto))
-                && recommendationsArePresentedInSystem(recommendationDto.getSkillOffers())) {
+        if (LocalDateTime.now().minusMonths(6).isAfter(getTimeOfLastRecommendation(recommendation))
+                && recommendationsArePresentedInSystem(recommendation.getSkillOffers())) {
 
-            newRecommendationId = saveRecommendation(recommendationDto);
-            List<SkillOfferDto> skillOfferDtos = recommendationDto.getSkillOffers();
+            newRecommendationId = saveRecommendation(recommendation);
+            List<SkillOffer> skillOffers = recommendation.getSkillOffers();
 
-            saveSkillOffers(skillOfferDtos, newRecommendationId);
-            addSkillAndAddGuarantor(recommendationDto, newRecommendationId);
+            saveSkillOffers(skillOffers, newRecommendationId);
+            addSkillAndAddGuarantor(recommendation, newRecommendationId);
 
             Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(newRecommendationId);
             return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
@@ -70,21 +68,22 @@ public class RecommendationService {
      * - Does not update guarantors of skills - doesn't delete lines from "user_skill_guarantee" table.(To brainstorm)
      * - Does not update skill offers from "skill_offer" table to keep the table consistent
      * - Does not update skills from "user_skill" table to keep the table consistent
-     * @param recommendationDto - recommendation to update
+     * @param recommendation - recommendation to update
      */
-    public RecommendationDto update(RecommendationDto recommendationDto) {
+    @Transactional
+    public RecommendationDto update(Recommendation recommendation) {
 
-        if (LocalDateTime.now().minusMonths(6).isAfter(getTimeOfLastRecommendation(recommendationDto))
-                && recommendationsArePresentedInSystem(recommendationDto.getSkillOffers())) {
-            recommendationRepository.update(
-                    recommendationDto.getAuthorId(),
-                    recommendationDto.getReceiverId(),
-                    recommendationDto.getContent());
+        if (LocalDateTime.now().minusMonths(6).isAfter(getTimeOfLastRecommendation(recommendation))
+                && recommendationsArePresentedInSystem(recommendation.getSkillOffers())) {
+            recommendationRepository.updateByRecommendationId(
+                    recommendation.getId(),
+                    recommendation.getAuthor().getId(),
+                    recommendation.getReceiver().getId(),
+                    recommendation.getContent());
 
-            List<SkillOfferDto> skillOfferDtos = recommendationDto.getSkillOffers();
-            updateRecommendation(recommendationDto);
+            updateRecommendation(recommendation);
 
-            Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(recommendationDto.getId());
+            Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(recommendation.getId());
             return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
         } else {
             throw new DataValidationException(SKILLS_PRESENCE_ERROR + "or" + RECOMMENDATION_FREQUENCY_ERROR);
@@ -127,9 +126,9 @@ public class RecommendationService {
                 .toList();
     }
 
-    private boolean  recommendationsArePresentedInSystem(@NonNull List<SkillOfferDto> skillOfferDtos) {
-        for (SkillOfferDto skill : skillOfferDtos) {
-            if (!skillRepository.existsByTitle(skill.getTitle())) {
+    private boolean  recommendationsArePresentedInSystem(@NonNull List<SkillOffer> skillOffers) {
+        for (SkillOffer skill : skillOffers) {
+            if (!skillRepository.existsByTitle(skill.getSkill().getTitle())) {
                 return false;
             }
         }
@@ -137,64 +136,64 @@ public class RecommendationService {
     }
 
     @Transactional
-    private void addSkillAndAddGuarantor(RecommendationDto recommendationDto, long newRecommendationId) {
-        List<SkillOfferDto> skillOfferDtos = recommendationDto.getSkillOffers();
-        if (!skillOfferDtos.isEmpty()) {
-            List<Skill> userOldSkills = skillRepository.findAllByUserId(recommendationDto.getReceiverId());
+    private void addSkillAndAddGuarantor(Recommendation recommendation, long newRecommendationId) {
+        List<SkillOffer> skillOffers = recommendation.getSkillOffers();
+        if (!skillOffers.isEmpty()) {
+            List<Skill> userOldSkills = skillRepository.findAllByUserId(recommendation.getReceiver().getId());
             List<Skill> allSkillsGuaranteedToUserByGuarantee = userSkillGuaranteeRepository
                     .findAllSkillsGuaranteedToUserByGuarantee(
-                            recommendationDto.getReceiverId(),
-                            recommendationDto.getAuthorId());
-            for (SkillOfferDto skill : skillOfferDtos) {
-                if (userOldSkills.contains(skill)) {
-                    if (!allSkillsGuaranteedToUserByGuarantee.contains(skill)) {
-                        addGuarantorToSkill(recommendationDto, skill);
+                            recommendation.getReceiver().getId(),
+                            recommendation.getAuthor().getId());
+            for (SkillOffer skillOffer : skillOffers) {
+                if (userOldSkills.contains(skillOffer.getSkill())) {
+                    if (!allSkillsGuaranteedToUserByGuarantee.contains(skillOffer.getSkill())) {
+                        addGuarantorToSkill(recommendation, skillOffer);
                     }
                 } else {
-                    skillRepository.assignSkillToUser(skill.getSkillId(), recommendationDto.getReceiverId());
-                    addGuarantorToSkill(recommendationDto, skill);
+                    skillRepository.assignSkillToUser(skillOffer.getSkill().getId(), recommendation.getReceiver().getId());
+                    addGuarantorToSkill(recommendation, skillOffer);
                 }
             }
         }
     }
 
     /**
-     * Returns time of last recommendation from DB created by recommendationDto.authorId to recommendationDto.receiverId
-     * @param recommendationDto - an object of recommendation received from API
+     * Returns time of last recommendation from DB created by recommendation.authorId to recommendation.receiverId
+     * @param recommendation - an object of recommendation received from API
      * @return - date of last recommendation if recommendation exists in Database
      * - Jan 01 0 (BC) if there is no recommendation
      */
-    private LocalDateTime getTimeOfLastRecommendation(RecommendationDto recommendationDto) {
-        Optional<Recommendation> recommendation = recommendationRepository.findFirstByAuthorIdAndReceiverIdOrderByCreatedAtDesc(
-                recommendationDto.getAuthorId(),
-                recommendationDto.getReceiverId());
-        return recommendation.map(Recommendation::getUpdatedAt).orElse(LocalDateTime.of(0, 1, 1, 0, 0));
+    private LocalDateTime getTimeOfLastRecommendation(Recommendation recommendation) {
+        Optional<Recommendation> recommendationFromDB = recommendationRepository.findFirstByAuthorIdAndReceiverIdOrderByCreatedAtDesc(
+                recommendation.getAuthor().getId(),
+                recommendation.getReceiver().getId());
+        return recommendationFromDB.map(Recommendation::getUpdatedAt).orElse(LocalDateTime.of(0, 1, 1, 0, 0));
     }
 
-    private Long saveRecommendation(RecommendationDto recommendationDto) {
-        return recommendationRepository.create(recommendationDto.getAuthorId(),
-                recommendationDto.getReceiverId(),
-                recommendationDto.getContent());
+    private Long saveRecommendation(Recommendation recommendation) {
+        return recommendationRepository.create(recommendation.getAuthor().getId(),
+                recommendation.getReceiver().getId(),
+                recommendation.getContent());
     }
 
-    private void saveSkillOffers(List<SkillOfferDto> skillOfferDtos, Long newRecommendationId) {
-        if(skillOfferDtos!=null) {
-            for (SkillOfferDto skillOfferDto : skillOfferDtos) {
-                skillOfferRepository.create(skillOfferDto.getSkillId(), newRecommendationId);
+    private void saveSkillOffers(List<SkillOffer> skillOffers, Long newRecommendationId) {
+        if(skillOffers!=null) {
+            for (SkillOffer skillOffer : skillOffers) {
+                skillOfferRepository.create(skillOffer.getSkill().getId(), newRecommendationId);
             }
         }
     }
 
-    private void updateRecommendation(RecommendationDto recommendationDto) {
-        recommendationRepository.update(recommendationDto.getAuthorId(),
-                recommendationDto.getReceiverId(), recommendationDto.getContent());
+    private void updateRecommendation(Recommendation recommendation) {
+        recommendationRepository.update(recommendation.getAuthor().getId(),
+                recommendation.getReceiver().getId(), recommendation.getContent());
     }
 
     @Transactional
-    private void addGuarantorToSkill(RecommendationDto recommendationDto, SkillOfferDto skillOfferDto) {
+    private void addGuarantorToSkill(Recommendation recommendation, SkillOffer skillOffer) {
         userSkillGuaranteeRepository.create(
-                recommendationDto.getReceiverId(),
-                skillOfferDto.getSkillId(),
-                recommendationDto.getAuthorId());
+                recommendation.getReceiver().getId(),
+                skillOffer.getSkill().getId(),
+                recommendation.getAuthor().getId());
     }
 }
