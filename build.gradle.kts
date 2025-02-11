@@ -74,9 +74,9 @@ tasks.bootJar {
 }
 
 val jacocoInclude = listOf(
-    "/controller/",
-    "/service/",
-    "/validator/"
+    "**/controller/**",
+    "**/service/**",
+    "**/validator/**"
 )
 
 tasks {
@@ -93,11 +93,15 @@ tasks {
             html.required.set(true)
         }
 
-        classDirectories.setFrom(
-            sourceSets.main.get().output.asFileTree.matching {
-                include(jacocoInclude)
-            }
-        )
+        val existingClassFiles = sourceSets.main.get().output.asFileTree.matching {
+            include(jacocoInclude)
+        }.files.filter { it.exists() }
+
+        if (existingClassFiles.isNotEmpty()) {
+            classDirectories.setFrom(files(existingClassFiles))
+        } else {
+            classDirectories.setFrom(files())
+        }
     }
 
     jacocoTestCoverageVerification {
@@ -108,11 +112,16 @@ tasks {
                 }
             }
         }
-        classDirectories.setFrom(
-            sourceSets.main.get().output.asFileTree.matching {
-                include(jacocoInclude)
-            }
-        )
+
+        val existingClassFiles = sourceSets.main.get().output.asFileTree.matching {
+            include(jacocoInclude)
+        }.files.filter { it.exists() }
+
+        if (existingClassFiles.isNotEmpty()) {
+            classDirectories.setFrom(files(existingClassFiles))
+        } else {
+            classDirectories.setFrom(files())
+        }
     }
 }
 
