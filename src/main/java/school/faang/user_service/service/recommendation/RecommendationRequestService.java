@@ -8,6 +8,7 @@ import school.faang.user_service.entity.RequestStatus;
 import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.recommendation.RecommendationRequest;
 import school.faang.user_service.repository.recommendation.RecommendationRequestRepository;
+import school.faang.user_service.repository.recommendation.SkillRequestRepository;
 
 import java.util.List;
 import java.util.Objects;
@@ -19,9 +20,12 @@ import java.util.stream.Collectors;
 public class RecommendationRequestService {
 
     private final RecommendationRequestRepository recommendationRequestRepository;
+    private final SkillRequestRepository skillRequestRepository;
 
     public RecommendationRequest create(@NonNull RecommendationRequest recommendationRequest) {
-        return recommendationRequestRepository.save(recommendationRequest);
+        RecommendationRequest savedRequest = recommendationRequestRepository.save(recommendationRequest);
+        skillRequestRepository.saveAll(savedRequest.getSkills());
+        return savedRequest;
     }
 
     public List<RecommendationRequest> getRequests(RequestFilterDto filter) {
@@ -42,10 +46,6 @@ public class RecommendationRequestService {
 
     public RecommendationRequest rejectRequest(long id, String reason) {
         RecommendationRequest request = getRequest(id);
-
-//        if (request.getStatus() == RequestStatus.ACCEPTED) {
-//            throw new IllegalStateException("Cannot reject a request with status " + request.getStatus());
-//        }
 
         if (request.getStatus() == RequestStatus.ACCEPTED || request.getStatus() == RequestStatus.REJECTED) {
             throw new IllegalStateException("Cannot reject a request with status " + request.getStatus());
