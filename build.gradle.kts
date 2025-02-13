@@ -3,8 +3,6 @@ plugins {
     id("org.springframework.boot") version "3.0.6"
     id("io.spring.dependency-management") version "1.1.0"
     jacoco
-
-
 }
 
 group = "faang.school"
@@ -20,42 +18,43 @@ jacoco {
 
 tasks {
     test {
-    useJUnitPlatform()
-    finalizedBy(jacocoTestReport)
-}
+        useJUnitPlatform()
+        finalizedBy(jacocoTestReport)
+    }
     jacocoTestReport {
         dependsOn(test)
         reports {
             xml.required.set(true)
-            html.required.set(true)}
+            html.required.set(true)
+        }
         classDirectories.setFrom(
                 sourceSets.main.get().output.asFileTree.matching {
                     include(jacocoInclude)
                 }
         )
     }
-jacocoTestCoverageVerification {
-    violationRules {
-        rule {
-            limit {
-                minimum = "0.70".toBigDecimal()
+    jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                limit {
+                    minimum = "0.70".toBigDecimal()
+                }
             }
         }
+        classDirectories.setFrom(
+                sourceSets.main.get().output.asFileTree.matching {
+                    include(jacocoInclude)
+                }
+        )
     }
-    classDirectories.setFrom(
-            sourceSets.main.get().output.asFileTree.matching {
-                include(jacocoInclude)
-            }
-            )
-}
 
 }
 
 
 val jacocoInclude = listOf(
-        "/controller/",
-        "/service/",
-        "/validator/"
+        "faang/school/projectservice/controller/**",
+        "faang/school/projectservice/service/**",
+        "faang/school/projectservice/validator/**"
 )
 
 dependencies {
