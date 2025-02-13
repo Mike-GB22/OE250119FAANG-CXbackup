@@ -4,16 +4,16 @@ import faang.school.projectservice.dto.VacancyDto;
 import faang.school.projectservice.model.*;
 import org.mapstruct.*;
 
+import javax.swing.text.Position;
 import java.util.List;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface VacancyMapper {
     @Mappings({
-            @Mapping(target = "project", source = "projectId", qualifiedByName = "map"),
-            @Mapping(target = "position", source = "positionId", qualifiedByName = "map1"),
-            @Mapping(target = "curatorRole", source = "curatorRoleId", qualifiedByName = "map1"),
-            @Mapping(target = "status", source = "statusId", qualifiedByName = "map2"),
-            @Mapping(target = "candidates", source = "candidatesIds", qualifiedByName = "map3"),
+            @Mapping(target = "project", source = "projectId", qualifiedByName = "mapProjectIdToProject"),
+            @Mapping(target = "position", source = "positionId", qualifiedByName = "mapPositionIdToPosition"),
+            @Mapping(target = "status", source = "statusId", qualifiedByName = "mapStatusIdToId"),
+            @Mapping(target = "candidates", source = "candidatesIds", qualifiedByName = "mapCandidatesIdToCandidates"),
             @Mapping(target = "createdBy", ignore = true),
             @Mapping(target = "updatedAt", ignore = true),
             @Mapping(target = "updatedBy", ignore = true),
@@ -23,20 +23,19 @@ public interface VacancyMapper {
     Vacancy toEntity(VacancyDto dto);
 
     @Mappings({
-            @Mapping(target = "projectId", source = "project", qualifiedByName = "map4"),
-            @Mapping(target = "positionId", source = "position", qualifiedByName = "map5"),
-            @Mapping(target = "curatorRoleId", source = "curatorRole", qualifiedByName = "map5"),
-            @Mapping(target = "statusId", source = "status", qualifiedByName = "map6"),
-            @Mapping(target = "candidatesIds", source = "candidates", qualifiedByName = "map7"),
+            @Mapping(target = "projectId", source = "project", qualifiedByName = "mapProjectToProjectId"),
+            @Mapping(target = "positionId", source = "position", qualifiedByName = "mapPositionToPositionId"),
+            @Mapping(target = "statusId", source = "status", qualifiedByName = "mapStatusToStatusId"),
+            @Mapping(target = "candidatesIds", source = "candidates", qualifiedByName = "mapCandidatesToCandidatesId"),
+            @Mapping(target = "roleId", ignore = true),
     })
     VacancyDto toDto(Vacancy entity);
 
     @Mappings({
-            @Mapping(target = "project", source = "projectId", qualifiedByName = "map"),
-            @Mapping(target = "position", source = "positionId", qualifiedByName = "map1"),
-            @Mapping(target = "curatorRole", source = "curatorRoleId", qualifiedByName = "map1"),
-            @Mapping(target = "status", source = "statusId", qualifiedByName = "map2"),
-            @Mapping(target = "candidates", source = "candidatesIds", qualifiedByName = "map3"),
+            @Mapping(target = "project", source = "projectId", qualifiedByName = "mapProjectIdToProject"),
+            @Mapping(target = "position", source = "positionId", qualifiedByName = "mapPositionIdToPosition"),
+            @Mapping(target = "status", source = "statusId", qualifiedByName = "mapStatusIdToId"),
+            @Mapping(target = "candidates", source = "candidatesIds", qualifiedByName = "mapCandidatesIdToCandidates"),
             @Mapping(target = "createdBy", ignore = true),
             @Mapping(target = "updatedAt", ignore = true),
             @Mapping(target = "updatedBy", ignore = true),
@@ -45,66 +44,68 @@ public interface VacancyMapper {
     })
     Vacancy update(@MappingTarget Vacancy vacancy, VacancyDto vacancyDto);
 
-    @Named("map")
-    default Project map(Long projectId) {
+    @Named("mapProjectIdToProject")
+    default Project mapProjectIdToProject(Long projectId) {
         if (projectId == null) {
             throw new IllegalArgumentException("Data cannot be null");
         }
         return Project.builder().id(projectId).build();
     }
-
-    @Named("map1")
-    default TeamRole map1(Integer someInt) {
+    @Named("mapPositionIdToPosition")
+    default TeamRole mapPositionIdToPosition(Integer someInt) {
         if (someInt == null) {
             throw new IllegalArgumentException("Data cannot be null");
         }
         return TeamRole.getAll().get(someInt);
     }
 
-    @Named("map2")
-    default VacancyStatus map2(Integer someInt) {
+    @Named("mapStatusIdToId")
+    default VacancyStatus mapStatusIdToId(Integer someInt) {
         if (someInt == null) {
             throw new IllegalArgumentException("Data cannot be null");
         }
         return VacancyStatus.getAll().get(someInt);
     }
 
-    @Named("map3")
-    default List<Candidate> map3(List<Long> candidates) {
+    @Named("mapCandidatesIdToCandidates")
+    default List<Candidate> mapCandidatesIdToCandidates(List<Long> candidates) {
         if (candidates == null) {
             throw new IllegalArgumentException("Candidates cannot be null");
         }
         return candidates.stream()
                 .map(candidateId -> {
                     Candidate candidate = new Candidate();
-                    candidate.setId(candidateId); // Нестатический вызов метода setId
+                    candidate.setId(candidateId);
                     return candidate;
                 })
                 .toList();
     }
-    @Named("map4")
-    default Long map4(Project project) {
-        if (project == null) {
-            throw new IllegalArgumentException("Data cannot be null");
-        }
-        return project.getId();
-    }
-    @Named("map5")
+    @Named("mapPositionToPositionId")
     default Integer map5(TeamRole someTeamRole) {
         if (someTeamRole == null) {
             throw new IllegalArgumentException("Data cannot be null");
         }
         return someTeamRole.ordinal();
     }
-    @Named("map6")
-    default Integer map6(VacancyStatus someStatus) {
+
+    @Named("mapProjectToProjectId")
+    default Long mapProjectToProjectId(Project project) {
+        if (project == null) {
+            throw new IllegalArgumentException("Data cannot be null");
+        }
+        return project.getId();
+    }
+
+    @Named("mapStatusToStatusId")
+    default Integer mapStatusToStatusId(VacancyStatus someStatus) {
         if (someStatus == null) {
             throw new IllegalArgumentException("Data cannot be null");
         }
         return someStatus.ordinal();
     }
-    @Named("map7")
-    default List<Long> map7(List<Candidate> candidates) {
+
+    @Named("mapCandidatesToCandidatesId")
+    default List<Long> mapCandidatesToCandidatesId(List<Candidate> candidates) {
         if (candidates == null) {
             throw new IllegalArgumentException("Candidates cannot be null");
         }

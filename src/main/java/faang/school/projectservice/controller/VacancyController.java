@@ -2,6 +2,7 @@ package faang.school.projectservice.controller;
 
 import faang.school.projectservice.dto.VacancyDto;
 import faang.school.projectservice.mapper.VacancyMapper;
+import faang.school.projectservice.model.TeamRole;
 import faang.school.projectservice.model.Vacancy;
 import faang.school.projectservice.service.VacancyService;
 import lombok.RequiredArgsConstructor;
@@ -10,13 +11,14 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/vacancy")
 @RequiredArgsConstructor
 public class VacancyController {
     public final VacancyService service;
     public final VacancyMapper mapper;
+    public TeamRole role;
 
-    @PostMapping("/create_vacancy")
+    @PostMapping("/create")
     public void createVacancy(@RequestBody VacancyDto vacancyDto) {
         vacancyDto = isDataValid(vacancyDto);
         Vacancy vacancy = mapperToEntity(vacancyDto);
@@ -25,15 +27,16 @@ public class VacancyController {
         log.info("Vacancy created successfully: {}", vacancy);
     }
 
-    @PutMapping("/update_vacancy")
+    @PutMapping("/update")
     public void updateVacancy(@RequestBody VacancyDto vacancyDto) {
+        vacancyDto = isDataValid(vacancyDto);
         Vacancy vacancy = mapperToEntity(vacancyDto);
         log.info("Received request to update vacancy: {}", vacancy);
         service.updateVacancy(vacancy);
         log.info("Vacancy updated successfully: {}", vacancy);
     }
 
-    @DeleteMapping("/delete_vacancy/{vacancyId}")
+    @DeleteMapping("/{vacancyId}")
     public void deleteVacancy(@PathVariable (value = "vacancyId", required = false) Long vacancyId) {
         log.info("Received request to delete vacancy with ID: {}", vacancyId);
         service.deleteVacancy(vacancyId);
@@ -41,12 +44,13 @@ public class VacancyController {
     }
 
     public VacancyDto isDataValid(VacancyDto vacancyDto) {
+
         if (vacancyDto.getPositionId() == null
                 || vacancyDto.getProjectId() == null
-                || vacancyDto.getCuratorRoleId() == null) {
+                || vacancyDto.getRoleId() == null) {
             throw new NullPointerException("You are use illegal data: position and project must be not null");
-        } else if (vacancyDto.getCuratorRoleId() != 0
-                && vacancyDto.getCuratorRoleId() != 1) {
+        } else if (vacancyDto.getRoleId() != 0
+                && vacancyDto.getRoleId() != 1) {
             throw new IllegalArgumentException("You are use illegal data: curator must be OWNER or MANAGER");
         }
         return vacancyDto;
@@ -55,4 +59,5 @@ public class VacancyController {
         Vacancy vacancy;
         return vacancy = mapper.toEntity(vacancyDto);
     }
+
 }

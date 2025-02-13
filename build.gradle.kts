@@ -5,6 +5,7 @@ plugins {
     id("io.freefair.lombok") version "8.4"
     kotlin("jvm") version "1.8.22"
     kotlin("plugin.spring") version "1.8.22"
+    kotlin("plugin.scripting") version "1.8.22"
 }
 
 group = "faang.school"
@@ -31,7 +32,6 @@ dependencies {
     implementation("org.liquibase:liquibase-core")
     implementation("redis.clients:jedis:4.3.2")
     runtimeOnly("org.postgresql:postgresql")
-    implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")
 
     /**
      * Amazon S3

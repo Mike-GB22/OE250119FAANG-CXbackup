@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import java.util.*;
 
 import static org.mockito.Mockito.*;
@@ -73,12 +74,11 @@ public class VacancyServiceTest {
     }
 
     public void dtoInitializer (VacancyDto vacancyDto) {
-        vacancyDto.setCuratorRoleId(0);
+        vacancyDto.setRoleId(0L);
         vacancyDto.setProjectId(1L);
         vacancyDto.setPositionId(3);
         vacancyDto.setId(1L);
         vacancyDto.setName("Java Developer");
-        vacancyDto.setCuratorId(2L);
         vacancyDto.setCount(1);
         vacancyDto.setCandidatesIds(Collections.singletonList(3L));
         vacancyDto.setStatusId(1);
@@ -88,12 +88,10 @@ public class VacancyServiceTest {
         vacancyDto.setRequiredSkillIds(Collections.singletonList(1L));
     }
     public void vacancyInitializer (Vacancy vacancy) {
-        vacancy.setCuratorRole(TeamRole.OWNER);
         vacancy.setProject(new Project());
         vacancy.setPosition(TeamRole.DEVELOPER);
         vacancy.setId(5L);
         vacancy.setName("Java Developer");
-        vacancy.setCuratorId(2L);
         vacancy.setCount(1);
         vacancy.setCandidates(Collections.singletonList(new Candidate()));
         vacancy.setStatus(VacancyStatus.OPEN);
