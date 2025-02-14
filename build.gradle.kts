@@ -20,6 +20,7 @@ tasks {
     test {
         useJUnitPlatform()
         finalizedBy(jacocoTestReport)
+        finalizedBy(jacocoTestCoverageVerification)
     }
     jacocoTestReport {
         dependsOn(test)
@@ -52,9 +53,9 @@ tasks {
 
 
 val jacocoInclude = listOf(
-        "faang/school/projectservice/controller/**",
-        "faang/school/projectservice/service/**",
-        "faang/school/projectservice/validator/**"
+        "**/controller/**",
+        "**/service/**",
+        "**/validator/**"
 )
 
 dependencies {
