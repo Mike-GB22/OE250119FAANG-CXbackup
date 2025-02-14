@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import school.faang.user_service.dto.recommendation.RecommendationDto;
 import school.faang.user_service.entity.Skill;
+import school.faang.user_service.entity.UserSkillGuarantee;
 import school.faang.user_service.entity.recommendation.Recommendation;
 import school.faang.user_service.entity.recommendation.SkillOffer;
 import school.faang.user_service.exception.DataValidationException;
@@ -26,6 +27,7 @@ import java.util.Optional;
 @Getter
 @Service
 @AllArgsConstructor
+@Transactional
 public class RecommendationService {
     private static final String SKILLS_PRESENCE_ERROR = "Skills are not presented in system ";
     private static final String RECOMMENDATION_FREQUENCY_ERROR = "recommendation was given less than 6 months ago";
@@ -45,19 +47,17 @@ public class RecommendationService {
     private static final int RESTRICTION_TIME_PERIOD_MONTHS = 6;
 
 
-    public RecommendationDto create(Recommendation recommendation) {
-
-        Long newRecommendationId;
+    public Recommendation create(Recommendation recommendation) {
 
         restrictionTimePeriodForNewRecommendationIsOver(recommendation);
         skillsArePresentedInSystem(recommendation.getSkillOffers());
 
-        newRecommendationId = saveRecommendation(recommendation);
+        Long newRecommendationId = saveRecommendation(recommendation);
         saveSkillOffers(recommendation.getSkillOffers(), newRecommendationId);
         addSkillsAndAddGuarantor(recommendation, newRecommendationId);
 
         Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(newRecommendationId);
-        return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
+        return recommendationFromDataBase.get();
     }
 
     /**
@@ -69,20 +69,14 @@ public class RecommendationService {
      * @param recommendation - recommendation to update
      */
     @Transactional
-    public RecommendationDto update(Recommendation recommendation) {
+    public Recommendation update(Recommendation recommendation) {
 
-        restrictionTimePeriodForNewRecommendationIsOver(recommendation);
-        skillsArePresentedInSystem(recommendation.getSkillOffers());
-        recommendationRepository.updateByRecommendationId(
-                recommendation.getId(),
-                recommendation.getAuthor().getId(),
-                recommendation.getReceiver().getId(),
-                recommendation.getContent());
-
+//        restrictionTimePeriodForNewRecommendationIsOver(recommendation);
+//        skillsArePresentedInSystem(recommendation.getSkillOffers());
         updateRecommendation(recommendation);
 
         Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(recommendation.getId());
-        return recommendationFromDataBase.map(recommendationMapper::toDto).orElse(null);
+        return recommendationFromDataBase.get();
     }
 
     /**
@@ -95,28 +89,24 @@ public class RecommendationService {
      */
     @Transactional
     public void delete(long id) {
-        Optional<Recommendation> optional = recommendationRepository.findById(id);
-        if (optional.isPresent()) {
+        try {
             recommendationRepository.deleteById(id);
-        } else {
-            throw new DataValidationException(RECOMMENDATION_NOT_FOUND);
+        } catch (Exception e){
+            System.out.println(e.getMessage());
         }
     }
 
     public List<RecommendationDto> getAllUserRecommendations(long receiverId) {
-        Page<Recommendation> recommendationPage = recommendationRepository.findAllByReceiverId(
-                receiverId,
-                PageRequest.of(PAGE_NUMBER, PAGE_SIZE));
-        return recommendationPage.stream()
+
+        List<Recommendation> recommendations = recommendationRepository.findAllByReceiverId(receiverId);
+        return recommendations.stream()
                 .map(recommendationMapper::toDto)
                 .toList();
     }
 
     public List<RecommendationDto> getAllGivenRecommendations(long authorId) {
-        Page<Recommendation> recommendationPage = recommendationRepository.findAllByAuthorId(
-                authorId,
-                PageRequest.of(PAGE_NUMBER, PAGE_SIZE));
-        return recommendationPage.stream()
+        List<Recommendation> recommendations = recommendationRepository.findAllByAuthorId(authorId);
+        return recommendations.stream()
                 .map(recommendationMapper::toDto)
                 .toList();
     }
@@ -172,10 +162,12 @@ public class RecommendationService {
         Optional<Recommendation> recommendationFromDB = recommendationRepository.findFirstByAuthorIdAndReceiverIdOrderByCreatedAtDesc(
                 recommendation.getAuthor().getId(),
                 recommendation.getReceiver().getId());
-        LocalDateTime timeOfLastRecommendationGivenToReceiver = recommendationFromDB.map(Recommendation::getUpdatedAt)
-                .orElse(LocalDateTime.of(0, 1, 1, 0, 0));
+        Optional<LocalDateTime> timeOfLastRecommendationGivenToReceiver = recommendationFromDB.map(Recommendation::getUpdatedAt);
+        if(timeOfLastRecommendationGivenToReceiver.isEmpty()) {
+            return true;
+        }
         if (LocalDateTime.now().minusMonths(RESTRICTION_TIME_PERIOD_MONTHS)
-                .isAfter(timeOfLastRecommendationGivenToReceiver)) {
+                .isAfter(timeOfLastRecommendationGivenToReceiver.get())) {
             return true;
         } else {
             throw new DataValidationException(RECOMMENDATION_FREQUENCY_ERROR);
@@ -198,15 +190,19 @@ public class RecommendationService {
     }
 
     private void updateRecommendation(Recommendation recommendation) {
-        recommendationRepository.update(recommendation.getAuthor().getId(),
-                recommendation.getReceiver().getId(), recommendation.getContent());
+        recommendationRepository.updateByRecommendationId(
+                recommendation.getId(),
+                recommendation.getAuthor().getId(),
+                recommendation.getReceiver().getId(),
+                recommendation.getContent());
     }
 
     @Transactional
     private void addGuarantorToSkill(Recommendation recommendation, SkillOffer skillOffer) {
-        userSkillGuaranteeRepository.create(
-                recommendation.getReceiver().getId(),
-                skillOffer.getSkill().getId(),
-                recommendation.getAuthor().getId());
+        userSkillGuaranteeRepository.save(new UserSkillGuarantee(
+                null,
+                recommendation.getReceiver(),
+                skillOffer.getSkill(),
+                recommendation.getAuthor()));
     }
 }

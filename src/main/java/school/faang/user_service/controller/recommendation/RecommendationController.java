@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import school.faang.user_service.dto.recommendation.RecommendationDto;
+import school.faang.user_service.entity.recommendation.Recommendation;
 import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.mapper.RecommendationMapper;
 import school.faang.user_service.service.RecommendationService;
@@ -16,11 +17,10 @@ import school.faang.user_service.service.RecommendationService;
 import java.util.List;
 
 @Controller
-//@RequiredArgsConstructor
 @AllArgsConstructor
 public class RecommendationController {
     @Autowired
-    RecommendationService recommendationService;
+    private  final RecommendationService recommendationService;
 
     @Autowired
     private final RecommendationMapper recommendationMapper;
@@ -31,7 +31,9 @@ public class RecommendationController {
     @ResponseBody
     public RecommendationDto giveRecommendation(@RequestBody RecommendationDto recommendationDto) {
         if (recommendationDtoIsValid(recommendationDto)) {
-            return recommendationService.create(recommendationMapper.toEntity(recommendationDto));
+            Recommendation recommendation = recommendationService.create(
+                    recommendationMapper.toEntity(recommendationDto));
+            return recommendationMapper.toDto(recommendation);
         } else {
             throw new DataValidationException("Content is empty");
         }
@@ -41,7 +43,9 @@ public class RecommendationController {
     @ResponseBody
     public RecommendationDto updateRecommendation(@RequestBody RecommendationDto recommendationDto) {
         if (recommendationDtoIsValid(recommendationDto)) {
-            return recommendationService.update(recommendationMapper.toEntity(recommendationDto));
+            Recommendation recommendation = recommendationService.update(
+                    recommendationMapper.toEntity(recommendationDto));
+            return recommendationMapper.toDto(recommendation);
         } else {
             throw new DataValidationException("Content is empty");
         }
