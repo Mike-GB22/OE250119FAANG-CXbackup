@@ -71,8 +71,8 @@ public class RecommendationService {
     @Transactional
     public Recommendation update(Recommendation recommendation) {
 
-//        restrictionTimePeriodForNewRecommendationIsOver(recommendation);
-//        skillsArePresentedInSystem(recommendation.getSkillOffers());
+        restrictionTimePeriodForNewRecommendationIsOver(recommendation);
+        skillsArePresentedInSystem(recommendation.getSkillOffers());
         updateRecommendation(recommendation);
 
         Optional<Recommendation> recommendationFromDataBase = recommendationRepository.findById(recommendation.getId());
@@ -89,10 +89,11 @@ public class RecommendationService {
      */
     @Transactional
     public void delete(long id) {
-        try {
+        Optional<Recommendation> optional = recommendationRepository.findById(id);
+        if (optional.isPresent()) {
             recommendationRepository.deleteById(id);
-        } catch (Exception e){
-            System.out.println(e.getMessage());
+        } else {
+            throw new DataValidationException(RECOMMENDATION_NOT_FOUND);
         }
     }
 
@@ -152,8 +153,7 @@ public class RecommendationService {
 
     /**
      * @param recommendation - an object of recommendation received from Controller class
-     * @return
-     * - true if last recommendation from DB given by recommendation.authorId to recommendation.receiverId
+     * @return - true if last recommendation from DB given by recommendation.authorId to recommendation.receiverId
      * was created more than number of months ago set RESTRICTION_TIME_PERIOD_MONTHS
      * - false if last recommendation from DB given by recommendation.authorId to recommendation.receiverId
      * was created less than number of months ago set RESTRICTION_TIME_PERIOD_MONTHS
@@ -163,7 +163,7 @@ public class RecommendationService {
                 recommendation.getAuthor().getId(),
                 recommendation.getReceiver().getId());
         Optional<LocalDateTime> timeOfLastRecommendationGivenToReceiver = recommendationFromDB.map(Recommendation::getUpdatedAt);
-        if(timeOfLastRecommendationGivenToReceiver.isEmpty()) {
+        if (timeOfLastRecommendationGivenToReceiver.isEmpty()) {
             return true;
         }
         if (LocalDateTime.now().minusMonths(RESTRICTION_TIME_PERIOD_MONTHS)

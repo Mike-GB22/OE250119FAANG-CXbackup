@@ -108,9 +108,12 @@ public class TestRecommendationService {
                 recommendation.getContent())).thenReturn(1L);
 
         when(recommendationRepository.findById(1L)).thenReturn(Optional.of(recommendation));
-        recommendationService.create(recommendation);
+        Recommendation recommendationResult = recommendationService.create(recommendation);
 
-        Mockito.verify(recommendationMapper, Mockito.times(1)).toDto(Mockito.any());
+        Assertions.assertEquals(
+                recommendation.getContent(),
+                recommendationResult.getContent(),
+                "returned recommendation is not equal to desired");
     }
 
     @Test
@@ -119,23 +122,29 @@ public class TestRecommendationService {
         when(recommendationRepository.findFirstByAuthorIdAndReceiverIdOrderByCreatedAtDesc(Mockito.anyLong(),Mockito.anyLong()))
                 .thenReturn(Optional.of(recommendation));
         when(skillRepository.existsByTitle(Mockito.anyString())).thenReturn(true);
+        when(recommendationRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(recommendation));
         recommendationService.update(recommendation);
 
-        Mockito.verify(recommendationRepository, Mockito.times(1)).update(
+        Mockito.verify(recommendationRepository, Mockito.times(1)).updateByRecommendationId(
+                recommendation.getId(),
                 recommendation.getAuthor().getId(),
                 recommendation.getReceiver().getId(),
                 recommendation.getContent());
     }
 
     @Test
-    public void testUpdateRecommendationMapperToDtoMethodIsLaunched() {
+    public void testUpdateRecommendationMapperReturnsRecommendation() {
         recommendation.setUpdatedAt(LocalDateTime.now().minusMonths(10));
         when(recommendationRepository.findFirstByAuthorIdAndReceiverIdOrderByCreatedAtDesc(Mockito.anyLong(),Mockito.anyLong()))
                 .thenReturn(Optional.of(recommendation));
         when(skillRepository.existsByTitle(Mockito.anyString())).thenReturn(true);
         when(recommendationRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(recommendation));
-        recommendationService.update(recommendation);
-        Mockito.verify(recommendationMapper, Mockito.times(1)).toDto(Mockito.any());
+        Recommendation recommendationResult = recommendationService.update(recommendation);
+
+        Assertions.assertEquals(
+                recommendation.getContent(),
+                recommendationResult.getContent(),
+                "returned recommendation is not equal to desired");
     }
 
     @Test
