@@ -44,13 +44,12 @@ public class VacancyController {
     }
 
     public VacancyDto isDataValid(VacancyDto vacancyDto) {
-
         if (vacancyDto.getPositionId() == null
                 || vacancyDto.getProjectId() == null
                 || vacancyDto.getRoleId() == null) {
             throw new NullPointerException("You are use illegal data: position and project must be not null");
-        } else if (vacancyDto.getRoleId() != 0
-                && vacancyDto.getRoleId() != 1) {
+        } else if (vacancyDto.getRoleId() != role.getAll().get(0).ordinal()
+                || vacancyDto.getRoleId() != role.getAll().get(1).ordinal()) {
             throw new IllegalArgumentException("You are use illegal data: curator must be OWNER or MANAGER");
         }
         return vacancyDto;

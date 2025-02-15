@@ -3,8 +3,6 @@ package faang.school.projectservice.mapper;
 import faang.school.projectservice.dto.VacancyDto;
 import faang.school.projectservice.model.*;
 import org.mapstruct.*;
-
-import javax.swing.text.Position;
 import java.util.List;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
