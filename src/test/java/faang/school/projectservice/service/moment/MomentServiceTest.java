@@ -115,7 +115,8 @@ public class MomentServiceTest {
 
         when(momentRepository.findById(1L)).thenReturn(Optional.of(existingMoment));
         when(momentRepository.save(existingMoment)).thenReturn(existingMoment);
-        when(momentService.updateMoment(1L, momentDto)).thenReturn(existingMoment);
+
+        momentService.updateMoment(1L, momentDto);
 
         System.out.println(existingMoment);
 
