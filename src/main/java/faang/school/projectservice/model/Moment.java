@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import lombok.Data;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -48,6 +49,7 @@ public class Moment {
             joinColumns = @JoinColumn(name = "moment_id"),
             inverseJoinColumns = @JoinColumn(name = "project_id")
     )
+    @ToString.Exclude
     private List<Project> projects;
 
     @ElementCollection
