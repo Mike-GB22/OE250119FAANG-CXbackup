@@ -5,7 +5,6 @@ import faang.school.projectservice.dto.moment.MomentFilterDto;
 import faang.school.projectservice.mapper.moment.MomentMapper;
 import faang.school.projectservice.model.Moment;
 import faang.school.projectservice.service.moment.MomentService;
-import faang.school.projectservice.validator.moment.MomentValidator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
