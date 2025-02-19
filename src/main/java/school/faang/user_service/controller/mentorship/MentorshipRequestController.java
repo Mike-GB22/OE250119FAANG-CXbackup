@@ -1,9 +1,9 @@
 package school.faang.user_service.controller.mentorship;
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,9 +21,8 @@ import school.faang.user_service.service.mentorship.MentorshipRequestService;
 
 import java.util.List;
 
-@Controller
 @RequiredArgsConstructor
-@RequestMapping("/mentorship")
+@RequestMapping("/v1/mentorship")
 @RestController
 @Validated
 public class MentorshipRequestController {
@@ -34,7 +33,7 @@ public class MentorshipRequestController {
             summary = "Request for mentorship",
             description = "Sent request for mentorship, use description for reason, mentor and mentee ids required")
     @PostMapping("/request")
-    public MentorshipRequestDto requestMentorship(@RequestBody MentorshipRequestDto requestDto) {
+    public MentorshipRequestDto requestMentorship(@Valid @RequestBody MentorshipRequestDto requestDto) {
         if (requestDto.getRequesterId() == requestDto.getReceiverId()) {
             throw new DataValidationException("User can't request mentoring from yourself");
         }
@@ -46,7 +45,7 @@ public class MentorshipRequestController {
             summary = "Get all mentorship requests by filter",
             description = "Filter requests by description, mentor, mentee or status")
     @PostMapping("/getRequests")
-    public List<MentorshipRequestDto> getRequests(@RequestBody RequestFilterDto filter) {
+    public List<MentorshipRequestDto> getRequests(@Valid @RequestBody RequestFilterDto filter) {
         return requestMapper.toEntityList(mentorshipRequestService.getRequests(filter));
     }
 
@@ -55,8 +54,8 @@ public class MentorshipRequestController {
             description = "Accept request, if not in mentor's list")
     @PutMapping("/{id}/accept")
     public void acceptRequest(
-            @PathVariable("id") @Min(value = 1, message = "Mentorship id must be greater than 0")
-            long requestId) {
+            @PathVariable("id")
+            @Min(value = 1, message = "Id must be greater than 1") long requestId) {
         mentorshipRequestService.acceptRequest(requestId);
     }
 
@@ -65,8 +64,9 @@ public class MentorshipRequestController {
             description = "Reject mentorship request by reason")
     @PutMapping("/{id}/reject")
     public MentorshipRequestDto rejectRequest(
-            @PathVariable("id") @Min(value = 1, message = "ID must be greater than 0")
-            long requestId, @RequestBody RejectionDto rejection) {
+            @PathVariable("id")
+            @Min(value = 1, message = "Id must be greater than 1") long requestId,
+            @Valid @RequestBody RejectionDto rejection) {
         return requestMapper.toDto(mentorshipRequestService.rejectRequest(requestId, rejection));
     }
 }
