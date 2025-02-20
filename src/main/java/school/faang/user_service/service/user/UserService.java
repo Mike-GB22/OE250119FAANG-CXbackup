@@ -19,6 +19,7 @@ import school.faang.user_service.service.mentorship.MentorshipService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
@@ -47,22 +48,24 @@ public class UserService {
     public void deactivateUser(Long userId) {
         log.info(LOG_MESSAGE_DEACTIVATING_STARTS, userId);
         User userToDeactivate = getUserFromDataBase(userId);
-        userToDeactivate.setActive(false);
-        userRepository.save(userToDeactivate);
 
-        quitMentorship(userToDeactivate);
         quitGoals(userToDeactivate.getId());
         quitEvents(userToDeactivate.getId());
+        quitMentorship(userToDeactivate);
+
+        userToDeactivate.setActive(false);
+        userRepository.save(userToDeactivate);
     }
 
     private void quitGoals(Long userId) {
-        List<Goal> allUserGoals = goalRepository.findGoalsByUserId(userId).toList();
+        List<Goal> allUserGoals = goalRepository.findGoalsListByUserId(userId);
         List<Goal> goalsToDelete = findGoalsToDelete(userId);
         // Deleting Goals that were only associated with userToDelete (no other users share these goals)
         for (Goal goal : goalsToDelete) {
             goalService.deleteGoal(goal.getId());
             log.debug(LOG_MESSAGE_DELETE_GOAL,  userId, goal.getDescription());
         }
+
         // Excluding userToDelete from his/her goals
         for (Goal goal : allUserGoals) {
             List<User> usersOfGoalWithoutDeactivatedUser = goal.getUsers().stream()
@@ -97,7 +100,8 @@ public class UserService {
     }
 
     private List<Goal> findGoalsToDelete(Long userId) {
-        List<Goal> userGoals = goalRepository.findGoalsByUserId(userId).toList();
+
+        List<Goal> userGoals = goalRepository.findGoalsListByUserId(userId);
         List<Goal> goalsToDelete = new ArrayList<>();
         for (Goal goal : userGoals) {
             List<User> users = goalRepository.findUsersByGoalIdHql(goal.getId());

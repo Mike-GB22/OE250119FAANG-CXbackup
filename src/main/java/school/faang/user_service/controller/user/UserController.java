@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import school.faang.user_service.entity.User;
 import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.mapper.UserMapper;
 import school.faang.user_service.service.user.UserService;
@@ -29,6 +30,7 @@ public class UserController {
     @ResponseBody
     public void deactivateUser(@RequestParam Long userId) {
         if (idIsValid(userId)) {
+            userMapper.toDto(new User());
             userService.deactivateUser(userId);
         } else {
             log.error(NEGATIVE_ID);
