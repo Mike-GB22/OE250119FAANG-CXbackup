@@ -1,12 +1,11 @@
 package faang.school.projectservice.service.moment;
 
 import faang.school.projectservice.dto.moment.MomentDto;
-import faang.school.projectservice.mapper.moment.MomentMapper;
+import faang.school.projectservice.dto.moment.MomentFilterDto;
 import faang.school.projectservice.mapper.moment.MomentMapperImpl;
 import faang.school.projectservice.model.*;
 import faang.school.projectservice.repository.MomentRepository;
 import faang.school.projectservice.repository.ProjectRepository;
-import faang.school.projectservice.repository.TeamMemberRepository;
 import faang.school.projectservice.service.moment.filter.MomentFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -17,8 +16,10 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -29,6 +30,9 @@ import static org.mockito.Mockito.*;
 public class MomentServiceTest {
     @Mock
     private MomentRepository momentRepository;
+
+    @Mock
+    private List<MomentFilter> momentFilters;
 
     @Mock
     private ProjectRepository projectRepository;

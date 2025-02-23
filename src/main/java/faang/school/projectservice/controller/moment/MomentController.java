@@ -41,12 +41,18 @@ public class MomentController {
     }
 
     @GetMapping
-    public List<MomentDto> findAll(@ModelAttribute MomentFilterDto filter) {
+    public ResponseEntity<List<MomentDto>> findAll(@ModelAttribute MomentFilterDto filter) {
         List<Moment> moments = momentService.findAll(filter);
 
-        return moments.stream()
+        if (moments.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        List<MomentDto> momentDto =  moments.stream()
                 .map(momentMapper::toDto)
                 .collect(Collectors.toList());
+
+        return ResponseEntity.ok(momentDto);
     }
 
     @DeleteMapping("/{id}")
@@ -56,8 +62,14 @@ public class MomentController {
     }
 
     @PatchMapping("/{id}")
-    public MomentDto updateMoment(@PathVariable Long id, @RequestBody MomentDto momentDto) {
+    public ResponseEntity<MomentDto> updateMoment(@PathVariable Long id, @RequestBody MomentDto momentDto) {
+        Moment updatedMoment = momentService.updateMoment(id, momentDto);
 
-        return momentMapper.toDto(momentService.updateMoment(id, momentDto));
+        if (updatedMoment == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        MomentDto responseDto = momentMapper.toDto(updatedMoment);
+        return ResponseEntity.ok(responseDto);
     }
 }

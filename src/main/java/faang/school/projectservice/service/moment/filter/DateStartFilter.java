@@ -18,10 +18,9 @@ public class DateStartFilter implements MomentFilter {
     }
 
     @Override
-    public List<Moment> apply(Stream<Moment> momentStream, MomentFilterDto filter) {
+    public Stream<Moment> apply(Stream<Moment> momentStream, MomentFilterDto filter) {
         return momentStream
                 .filter(moment -> YearMonth
-                        .from(moment.getDate()).isAfter(filter.getDateStartPattern()))
-                .collect(Collectors.toList());
+                        .from(moment.getDate()).isAfter(filter.getDateStartPattern()));
     }
 }

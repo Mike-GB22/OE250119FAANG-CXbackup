@@ -19,12 +19,12 @@ public class ProjectIdsFilter implements MomentFilter {
     }
 
     @Override
-    public List<Moment> apply(Stream<Moment> momentStream, MomentFilterDto filter) {
+    public Stream<Moment> apply(Stream<Moment> momentStream, MomentFilterDto filter) {
         Set<Long> projectIdsPattern = new HashSet<>(filter.getProjectIdsPattern());
 
         return momentStream
-                .filter(moment -> moment
-                        .getProjects().stream().anyMatch(projectIdsPattern::contains))
-                .collect(Collectors.toList());
+                .filter(moment -> moment.getProjects() != null
+                        && moment.getProjects().stream()
+                        .anyMatch(project -> projectIdsPattern.contains(project.getId())));
     }
 }

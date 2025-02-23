@@ -19,10 +19,9 @@ public class DateEndFilter implements MomentFilter {
     }
 
     @Override
-    public List<Moment> apply(Stream<Moment> momentSystem, MomentFilterDto filter) {
+    public Stream<Moment> apply(Stream<Moment> momentSystem, MomentFilterDto filter) {
         return momentSystem
                 .filter(moment -> YearMonth
-                        .from(moment.getDate()).isBefore(filter.getDateEndPattern()))
-                .collect(Collectors.toList());
+                        .from(moment.getDate()).isBefore(filter.getDateEndPattern()));
     }
 }

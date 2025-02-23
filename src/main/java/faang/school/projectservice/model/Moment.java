@@ -49,7 +49,6 @@ public class Moment {
             joinColumns = @JoinColumn(name = "moment_id"),
             inverseJoinColumns = @JoinColumn(name = "project_id")
     )
-    @ToString.Exclude
     private List<Project> projects;
 
     @ElementCollection

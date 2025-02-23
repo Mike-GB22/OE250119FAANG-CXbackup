@@ -46,7 +46,7 @@ public class MomentService {
         return !moments.isEmpty() ? filterMoments(moments.stream(), filter) : new ArrayList<>();
     }
 
-    public List<Moment> filterMoments(Stream<Moment> moments, MomentFilterDto filters) {
+    private List<Moment> filterMoments(Stream<Moment> moments, MomentFilterDto filters) {
         if (momentFilters.isEmpty()) {
             return moments.collect(Collectors.toList());
         }
@@ -54,11 +54,10 @@ public class MomentService {
         return momentFilters.stream()
                 .filter(filter -> filter.isApplicable(filters))
                 .reduce(moments,
-                        (stream, filter) -> filter.apply(stream, filters).stream(),
+                        (stream, filter) -> filter.apply(stream, filters),
                         (s1, s2) -> s1)
                 .skip((long) filters.getPage() * filters.getPageSize())
                 .toList();
-
     }
 
     @Transactional
@@ -67,8 +66,10 @@ public class MomentService {
                 .orElseThrow(() -> new IllegalArgumentException("Moment with ID " + id + " not found"));
 
         Optional.ofNullable(moment.getProjects())
-                .ifPresent(projects -> projects
-                        .forEach(project -> project.getMoments().remove(moment)));
+                .ifPresent(projects -> {
+                    projects.forEach(project -> project.getMoments().remove(moment));
+                    projectRepository.saveAll(projects);
+                });
 
         momentRepository.delete(moment);
     }
@@ -77,17 +78,10 @@ public class MomentService {
     public Moment updateMoment(Long momentId, MomentDto momentDto) {
         Moment moment = momentRepository.findById(momentId)
                 .orElseThrow(() -> {
-                    log.error("Moment with Id {} not found", momentId);
                     return new IllegalArgumentException("Moment with Id " + momentId + " not found");
                 });
-        log.info("Start update moment");
         momentMapper.updateMomentFromDto(momentDto, moment);
-        log.info("Entity created successfully");
-        log.info("Moment = {}", moment);
         updateMomentFields(moment, momentDto);
-        log.info("newMoment = {}", moment);
-        log.info("moment.getUserIds() = {}", moment.getUserIds());
-        log.info("moment.getProjects() = {}", moment.getProjects());
         return momentRepository.save(moment);
     }
 
@@ -105,14 +99,13 @@ public class MomentService {
     }
 
     private boolean isProjectActive(Project project) {
-        return project.getStatus() == ProjectStatus.IN_PROGRESS;
+        return project.getStatus() == ProjectStatus.IN_PROGRESS
+                || project.getStatus() == ProjectStatus.CREATED;
     }
 
     private void updateMomentFields(Moment moment, MomentDto momentDto) {
         updateFieldsByProjectIds(moment, momentDto);
-        log.info("moment.getUserIds() = {}", moment.getUserIds());
         updateFieldsByUserIds(moment, momentDto);
-        log.info("moment.getUserIds() = {}", moment.getUserIds());
     }
 
     private void updateFieldsByProjectIds(Moment moment, MomentDto momentDto) {
@@ -120,14 +113,11 @@ public class MomentService {
             List<Project> newProjects = projectRepository.findAllById(momentDto.getProjectIds());
             concatProjects(moment, newProjects);
         }
-        log.info("moment.getUserIds() = {}", moment.getUserIds());
 
         List<Long> newUserIds = getUsersIdsByProjects(moment.getProjects());
-        log.info("newUserIds = {}", newUserIds);
         if (newUserIds != null && !newUserIds.isEmpty()) {
             concatUserIds(moment, newUserIds);
         }
-        log.info("moment.getUserIds() = {}", moment.getUserIds());
     }
 
     private void updateFieldsByUserIds(Moment moment, MomentDto momentDto) {
