@@ -48,24 +48,23 @@ public class UserService {
         log.info(LOG_MESSAGE_DEACTIVATING_STARTS, userId);
         User userToDeactivate = getUserFromDataBase(userId);
 
-        quitGoals(userToDeactivate.getId());
-        quitEvents(userToDeactivate.getId());
-        quitMentorship(userToDeactivate);
+        quitGoals(userId, userToDeactivate.getGoals());
+        quitEvents(userId);
+        quitMentorship(userId);
 
         userToDeactivate.setActive(false);
         userRepository.save(userToDeactivate);
     }
 
-    private void quitGoals(Long userId) {
-        List<Goal> allUserGoals = goalRepository.findGoalsListByUserId(userId);
-        List<Goal> goalsToDelete = findGoalsToDelete(userId);
+    private void quitGoals(Long userId, List<Goal> userGoals) {
+        List<Goal> goalsToDelete = findGoalsToDelete(userId, userGoals);
 
         for (Goal goal : goalsToDelete) {
             goalService.deleteGoal(goal.getId());
             log.debug(LOG_MESSAGE_DELETE_GOAL, userId, goal.getDescription());
         }
 
-        for (Goal goal : allUserGoals) {
+        for (Goal goal : userGoals) {
             List<User> usersOfGoalWithoutDeactivatedUser = goal.getUsers().stream()
                     .filter(u -> !u.getId().equals(userId))
                     .toList();
@@ -83,8 +82,8 @@ public class UserService {
         }
     }
 
-    private void quitMentorship(User userToDeactivate) {
-        mentorshipService.stopMentorship(userToDeactivate.getId());
+    private void quitMentorship(Long userId) {
+        mentorshipService.stopMentorship(userId);
     }
 
     private User getUserFromDataBase(Long userId) {
@@ -97,12 +96,10 @@ public class UserService {
         }
     }
 
-    private List<Goal> findGoalsToDelete(Long userId) {
-
-        List<Goal> userGoals = goalRepository.findGoalsListByUserId(userId);
+    private List<Goal> findGoalsToDelete(Long userId, List<Goal> userGoals) {
         List<Goal> goalsToDelete = new ArrayList<>();
         for (Goal goal : userGoals) {
-            List<User> users = goalRepository.findUsersByGoalIdHql(goal.getId());
+            List<User> users = goal.getUsers();
             if (users.size() == 1) {
                 goalsToDelete.add(goal);
             }

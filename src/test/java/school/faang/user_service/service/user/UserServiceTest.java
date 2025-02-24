@@ -1,6 +1,5 @@
 package school.faang.user_service.service.user;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +42,7 @@ public class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    private User userWithNoGoals;
     private List<User> userListSizeOne;
     private List<Goal> userGoals;
     private List<Goal> allUserGoals;
@@ -62,6 +62,7 @@ public class UserServiceTest {
         goal.setId(2L);
         goal.setUsers(List.of(user));
         userGoals.add(goal);
+        userListSizeOne.get(0).setGoals(userGoals);
 
         allUserGoals = new ArrayList<>();
         Goal goalA = new Goal();
@@ -71,14 +72,13 @@ public class UserServiceTest {
 
         allUserGoalsEmpty = new ArrayList<>();
         eventsEmpty = new ArrayList<>();
+        userWithNoGoals = new User();
+        userWithNoGoals.setGoals(allUserGoalsEmpty);
     }
 
     @Test
     public void testDeactivateUserGoalIsDeleted() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(userListSizeOne.get(0)));
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(allUserGoals);
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(userGoals);
-        when(goalRepository.findUsersByGoalIdHql(Mockito.anyLong())).thenReturn(userListSizeOne);
 
         userService.deactivateUser(1L);
 
@@ -87,10 +87,7 @@ public class UserServiceTest {
 
     @Test
     public void testDeactivateUserDeleteGoalIsNotInvoked() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(userListSizeOne.get(0)));
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(allUserGoalsEmpty);
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(allUserGoalsEmpty);
-        when(eventRepository.findAllByUserId(Mockito.anyLong())).thenReturn(eventsEmpty);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(userWithNoGoals));
 
         userService.deactivateUser(1L);
 
@@ -100,9 +97,6 @@ public class UserServiceTest {
     @Test
     public void testDeactivateUserGoalIsUpdated() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(userListSizeOne.get(0)));
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(allUserGoals);
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(userGoals);
-        when(eventRepository.findAllByUserId(Mockito.anyLong())).thenReturn(eventsEmpty);
 
         userService.deactivateUser(1L);
 
@@ -112,8 +106,6 @@ public class UserServiceTest {
     @Test
     public void testDeactivateUserEventsAreDeleted() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(userListSizeOne.get(0)));
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(allUserGoalsEmpty);
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(allUserGoalsEmpty);
         when(eventRepository.findAllByUserId(Mockito.anyLong())).thenReturn(eventsEmpty);
         when(eventRepository.findAllByUserId(1L)).thenReturn(List.of(new Event()));
 
@@ -125,8 +117,6 @@ public class UserServiceTest {
     @Test
     public void testDeactivateUserStopMentorship() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(userListSizeOne.get(0)));
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(allUserGoalsEmpty);
-        when(goalRepository.findGoalsListByUserId(1L)).thenReturn(allUserGoalsEmpty);
         when(eventRepository.findAllByUserId(Mockito.anyLong())).thenReturn(eventsEmpty);
         when(eventRepository.findAllByUserId(1L)).thenReturn(List.of(new Event()));
 
