@@ -1,0 +1,9 @@
+name: CI unicorn8 project_service
+
+on:
+  pull_request:
+    branches:
+      - unicorn-master-stream8
+
+jobs:
+  build:
