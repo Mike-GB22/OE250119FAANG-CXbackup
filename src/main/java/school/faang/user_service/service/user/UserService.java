@@ -2,7 +2,6 @@ package school.faang.user_service.service.user;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import school.faang.user_service.entity.User;
@@ -11,7 +10,6 @@ import school.faang.user_service.entity.goal.Goal;
 import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.event.EventRepository;
-import school.faang.user_service.repository.goal.GoalRepository;
 import school.faang.user_service.service.event.EventService;
 import school.faang.user_service.service.goal.GoalService;
 import school.faang.user_service.service.mentorship.MentorshipService;
@@ -19,23 +17,18 @@ import school.faang.user_service.service.mentorship.MentorshipService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 @Transactional
 @Slf4j
 public class UserService {
-    @Autowired
+
     private GoalService goalService;
-    @Autowired
-    private GoalRepository goalRepository;
-    @Autowired
     private EventService eventService;
-    @Autowired
     private EventRepository eventRepository;
-    @Autowired
     private UserRepository userRepository;
-    @Autowired
     private MentorshipService mentorshipService;
 
     private static final String LOG_MESSAGE_DEACTIVATING_STARTS = "Deactivating user with id={}";
@@ -49,11 +42,15 @@ public class UserService {
         User userToDeactivate = getUserFromDataBase(userId);
 
         quitGoals(userId, userToDeactivate.getGoals());
-        quitEvents(userId);
+        stopAndDeleteEvent(userId);
         quitMentorship(userId);
 
         userToDeactivate.setActive(false);
         userRepository.save(userToDeactivate);
+    }
+
+    public User getUser(Long userId) {
+        return getUserFromDataBase(userId);
     }
 
     private void quitGoals(Long userId, List<Goal> userGoals) {
@@ -67,14 +64,14 @@ public class UserService {
         for (Goal goal : userGoals) {
             List<User> usersOfGoalWithoutDeactivatedUser = goal.getUsers().stream()
                     .filter(u -> !u.getId().equals(userId))
-                    .toList();
+                    .collect(Collectors.toList());
             goal.setUsers(usersOfGoalWithoutDeactivatedUser);
             goalService.updateGoal(userId, goal);
             log.debug(LOG_MESSAGE_QUIT_PARTICIPATION_IN_GOALS, userId, goal.getDescription());
         }
     }
 
-    private void quitEvents(Long userId) {
+    private void stopAndDeleteEvent(Long userId) {
         List<Event> eventsToDelete = eventRepository.findAllByUserId(userId);
         for (Event event : eventsToDelete) {
             eventService.deleteEvent(event.getId());
@@ -100,7 +97,7 @@ public class UserService {
         List<Goal> goalsToDelete = new ArrayList<>();
         for (Goal goal : userGoals) {
             List<User> users = goal.getUsers();
-            if (users.size() == 1) {
+            if ((users.size() == 1) && (users.get(0).getId().equals(userId))) {
                 goalsToDelete.add(goal);
             }
         }
