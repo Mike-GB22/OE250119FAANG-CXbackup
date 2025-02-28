@@ -40,7 +40,7 @@ public class Comment {
     @Column(name = "author_id", nullable = false)
     private Long authorId;
 
-    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "comment", orphanRemoval = true)
     private List<Like> likes;
 
     @ManyToOne
