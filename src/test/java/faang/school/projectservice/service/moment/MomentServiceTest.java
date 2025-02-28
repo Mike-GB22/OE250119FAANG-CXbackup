@@ -6,7 +6,6 @@ import faang.school.projectservice.mapper.moment.MomentMapperImpl;
 import faang.school.projectservice.model.*;
 import faang.school.projectservice.repository.MomentRepository;
 import faang.school.projectservice.repository.ProjectRepository;
-import faang.school.projectservice.service.moment.filter.MomentFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,9 +29,6 @@ import static org.mockito.Mockito.*;
 public class MomentServiceTest {
     @Mock
     private MomentRepository momentRepository;
-
-    @Mock
-    private List<MomentFilter> momentFilters;
 
     @Mock
     private ProjectRepository projectRepository;
@@ -99,6 +95,33 @@ public class MomentServiceTest {
     }
 
     @Test
+    void findAllShouldReturnEmptyListWhenNoMomentsAvailable() {
+        when(momentRepository.findAll()).thenReturn(List.of());
+
+        List<Moment> result = momentService.findAll(new MomentFilterDto());
+
+        verify(momentRepository, times(1)).findAll();
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findAllShouldReturnFilteredList() {
+        Moment firstMoment = new Moment();
+        Moment secondMoment = new Moment();
+        List<Moment> moments = List.of(firstMoment, secondMoment);
+        MomentFilterDto filter = new MomentFilterDto();
+        filter.setDateEndPattern(YearMonth.now());
+
+        when(momentRepository.findAll()).thenReturn(moments);
+
+        List<Moment> result = momentService.findAll(filter);
+
+        verify(momentRepository, times(1)).findAll();
+        assertEquals(result, moments);
+    }
+
+
+    @Test
     void updateMomentShouldUpdateSuccessfully() {
         String newName = "New Name";
 
@@ -107,7 +130,9 @@ public class MomentServiceTest {
         existingMoment.setUserIds(List.of());
         Project project = new Project();
         Team team = new Team();
-        team.setTeamMembers(List.of(new TeamMember()));
+        TeamMember teamMember = new TeamMember();
+        teamMember.setId(1L);
+        team.setTeamMembers(List.of(teamMember));
         project.setTeams(List.of(team));
         existingMoment.setUserIds(List.of(2L));
         existingMoment.setId(1L);
@@ -116,6 +141,8 @@ public class MomentServiceTest {
 
         MomentDto momentDto = new MomentDto();
         momentDto.setName(newName);
+        momentDto.setProjectIds(List.of(2L));
+        momentDto.setUserIds(List.of(1L));
 
         when(momentRepository.findById(1L)).thenReturn(Optional.of(existingMoment));
         when(momentRepository.save(existingMoment)).thenReturn(existingMoment);
