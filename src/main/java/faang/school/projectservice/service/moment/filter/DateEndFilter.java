@@ -22,6 +22,6 @@ public class DateEndFilter implements MomentFilter {
     public Stream<Moment> apply(Stream<Moment> momentSystem, MomentFilterDto filter) {
         return momentSystem
                 .filter(moment -> YearMonth
-                        .from(moment.getDate()).isBefore(filter.getDateEndPattern()));
+                        .from(moment.getDate()).isAfter(filter.getDateEndPattern()));
     }
 }

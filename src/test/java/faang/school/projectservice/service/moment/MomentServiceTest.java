@@ -6,6 +6,8 @@ import faang.school.projectservice.mapper.moment.MomentMapperImpl;
 import faang.school.projectservice.model.*;
 import faang.school.projectservice.repository.MomentRepository;
 import faang.school.projectservice.repository.ProjectRepository;
+import faang.school.projectservice.repository.TeamMemberRepository;
+import faang.school.projectservice.service.moment.filter.MomentFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,11 +35,20 @@ public class MomentServiceTest {
     @Mock
     private ProjectRepository projectRepository;
 
+    @Mock
+    private TeamMemberRepository teamMemberRepository;
+
+    @Mock
+    private MomentFilter startMomentFilter;
+
+
     @Spy
     private MomentMapperImpl momentMapper;
 
     @InjectMocks
     private MomentService momentService;
+
+    private List<MomentFilter> momentFilters;
 
     @Test
     public void saveMomentWithActiveProjectsShouldSaveSuccessfully() {
@@ -113,6 +124,12 @@ public class MomentServiceTest {
         filter.setDateEndPattern(YearMonth.now());
 
         when(momentRepository.findAll()).thenReturn(moments);
+        when(startMomentFilter.isApplicable(any())).thenReturn(true);
+        when(startMomentFilter.apply(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        momentFilters = List.of(startMomentFilter);
+
+        momentService = new MomentService(momentRepository, momentMapper, momentFilters, projectRepository, teamMemberRepository);
 
         List<Moment> result = momentService.findAll(filter);
 
