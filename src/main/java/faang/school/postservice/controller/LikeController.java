@@ -3,6 +3,7 @@ package faang.school.postservice.controller;
 import faang.school.postservice.config.context.UserContext;
 import faang.school.postservice.dto.like.LikeDto;
 import faang.school.postservice.dto.post.PostDto;
+import faang.school.postservice.exception.DataValidationException;
 import faang.school.postservice.mapper.LikeMapper;
 import faang.school.postservice.mapper.PostMapper;
 import faang.school.postservice.model.Like;
@@ -23,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 @RequestMapping("/api/v1/like")
 @Slf4j
-@Validated
 public class LikeController {
     private LikeService likeServiceV2;
     private LikeMapper likeMapper;
