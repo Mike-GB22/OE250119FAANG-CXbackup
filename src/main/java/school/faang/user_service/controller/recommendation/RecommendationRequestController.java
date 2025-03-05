@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import school.faang.user_service.dto.RecommendationRequestDto;
 import school.faang.user_service.dto.RejectionDto;
 import school.faang.user_service.dto.RequestFilterDto;
+import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.mapper.RecommendationRequestMapper;
 import school.faang.user_service.service.recommendation.RecommendationRequestService;
 
@@ -28,6 +29,10 @@ public class RecommendationRequestController {
 
     @PostMapping
     public ResponseEntity<RecommendationRequestDto> requestRecommendation(@RequestBody RecommendationRequestDto requestDto) {
+        if (requestDto.getMessage() == null || requestDto.getMessage().trim().isEmpty()) {
+            throw new DataValidationException("Message cannot be empty");
+        }
+
         var recommendationRequest = recommendationRequestMapper.toEntity(requestDto);
         var createdRequest = recommendationRequestService.create(recommendationRequest);
         var responseDto = recommendationRequestMapper.toDto(createdRequest);
