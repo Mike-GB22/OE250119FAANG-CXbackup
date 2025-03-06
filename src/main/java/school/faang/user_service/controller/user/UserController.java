@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import school.faang.user_service.dto.user.UserDto;
 import school.faang.user_service.mapper.PersonCsvMapper;
-import school.faang.user_service.service.UserService;
+import school.faang.user_service.service.user.UserService;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,7 +36,7 @@ public class UserController {
             @NotNull(message = "Request has to have a CSV file with Persons") @RequestBody MultipartFile file)
             throws IOException {
 
-        return userService.saveUsers(
+        return userService.createUsers(
                 personCsvMapper.toPersons(file));
     }
 }
