@@ -3,6 +3,11 @@ package school.faang.user_service.mapper;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import school.faang.user_service.dto.user.Person;
@@ -10,12 +15,22 @@ import school.faang.user_service.dto.user.Person;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class PersonCsvMapper {
 
+    private final CsvMapper csvMapper;
+    private final Validator validator;
+
+    public PersonCsvMapper() {
+        csvMapper = new CsvMapper();
+        ValidatorFactory factory = jakarta.validation.Validation.buildDefaultValidatorFactory();
+        this.validator = factory.getValidator();
+    }
+
     public List<Person> toPersons(MultipartFile file) throws IOException {
-        CsvMapper csvMapper = new CsvMapper();
+
         CsvSchema schema = getCsvSchema();
 
         List<Person> persons;
@@ -27,6 +42,8 @@ public class PersonCsvMapper {
                     .readValues(inputStream);
             persons = iterator.readAll();
         }
+
+        persons.forEach(this::validate);
         return persons;
     }
 
@@ -48,6 +65,16 @@ public class PersonCsvMapper {
                 .addColumn("employer")
                 .setUseHeader(true)
                 .build();
+    }
+
+    private void validate(Person person) {
+        Set<ConstraintViolation<Person>> violations = validator.validate(person);
+
+        if (!violations.isEmpty()) {
+//            ConstraintViolation<Person> title = violations.iterator().next();
+//            title.
+            throw new ConstraintViolationException("CsvMapper validation error", violations);
+        }
     }
 
 }
