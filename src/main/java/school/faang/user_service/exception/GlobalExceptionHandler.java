@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -16,16 +17,19 @@ import java.util.function.Consumer;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final String INFO = "Info";
+    private static final String ERROR_FIELD_INFO = "Info";
+    private static final String ERROR_FIELD_EXCEPTION = "Exception";
+    private static final String ERROR_FIELD_MESSAGE = "Exception message";
+
+    private static final String INFO_VALIDATION_EXCEPTION = "Data Validation exception occurred";
+
 
     @ExceptionHandler(DataValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleDataValidationException(DataValidationException e) {
-        Map<String, String> errors = getErrorsMapWithExceptionTitle(e);
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, INFO_VALIDATION_EXCEPTION);
 
-        errors.put("Info", "Data Validation exception occurred");
-
-        logging(LoggingLevel.WARN, errors, e);
+        logging(LoggingLevel.WARN, errors);
 
         return errors;
     }
@@ -33,9 +37,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleEntityNotFoundException(EntityNotFoundException e) {
-        Map<String, String> errors = getErrorsMapWithExceptionTitle(e);
-
-        errors.put(INFO, "Entity not Found exception occurred");
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "Entity not Found exception occurred");
 
         logging(LoggingLevel.WARN, errors);
         return errors;
@@ -44,9 +46,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleIllegalArgumentException(IllegalArgumentException e) {
-        Map<String, String> errors = getErrorsMapWithExceptionTitle(e);
-
-        errors.put(INFO, "Illegal argument exception occurred");
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "Illegal argument exception occurred");
 
         logging(LoggingLevel.WARN, errors);
         return errors;
@@ -54,14 +54,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> argumentNotValidExceptionHandler(MethodArgumentNotValidException e) {
-        Map<String, String> errors = getErrorsMapWithExceptionTitle(e);
-
-        errors.put(INFO, "Data Validation exception occurred");
+    public Map<String, String> handleArgumentNotValidException(MethodArgumentNotValidException e) {
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, INFO_VALIDATION_EXCEPTION);
 
         e.getBindingResult()
-                .getFieldErrors()
-                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+            .getFieldErrors()
+            .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
         logging(LoggingLevel.WARN, errors);
         return errors;
@@ -69,10 +67,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> constraintViolationExceptionHandler(jakarta.validation.ConstraintViolationException e) {
-        Map<String, String> errors = getErrorsMapWithExceptionTitle(e);
-
-        errors.put(INFO, "Data Validation exception occurred");
+    public Map<String, String> handleConstraintViolationException(jakarta.validation.ConstraintViolationException e) {
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, INFO_VALIDATION_EXCEPTION);
 
         e.getConstraintViolations()
                 .forEach(violation -> {
@@ -86,26 +82,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> constraintViolationExceptionHandler(org.springframework.dao.DataIntegrityViolationException e) {
-        Map<String, String> errors = getErrorsMapWithExceptionTitle(e);
-
-        errors.put(INFO, "Data Validation exception occurred");
+    public Map<String, String> handleConstraintViolationException(org.springframework.dao.DataIntegrityViolationException e) {
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, INFO_VALIDATION_EXCEPTION);
 
         Throwable rootCause = e.getRootCause();
-        if (null == rootCause) {
-            return errors;
-        }
-        errors.put("Root cause", rootCause.toString());
+        if (null != rootCause) {
+            errors.put("DataIntegrityViolationException: Root cause", rootCause.toString());
 
-        if (rootCause instanceof org.hibernate.exception.ConstraintViolationException hibernateEx) {
-            String sqlMessage = hibernateEx.getSQLException().getMessage();
-            String constraintName = hibernateEx.getConstraintName();
-            errors.put("SQL error", sqlMessage);
-            errors.put("Violation of validation", constraintName);
-        } else if (rootCause instanceof java.sql.SQLException sqlEx) {
-            errors.put("SQL error", sqlEx.getMessage());
-        } else {
-            errors.put("Unknown error", e.getMessage());
+            if (rootCause instanceof org.hibernate.exception.ConstraintViolationException hibernateException) {
+                subHandleHibernateConstraintViolationException(hibernateException, errors);
+            } else if (rootCause instanceof java.sql.SQLException sqlException) {
+                subHandleSQLException(sqlException, errors);
+            } else {
+                subHandleException(e, errors);
+            }
         }
 
         logging(LoggingLevel.WARN, errors);
@@ -115,68 +105,85 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.hibernate.JDBCException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleJDBCException(org.hibernate.JDBCException e) {
-        Map<String, String> errors = getErrorsMapWithExceptionTitle(e);
-
-        errors.put(INFO, "JDBC exception occurred");
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "JDBC exception occurred");
 
         java.sql.SQLException sqlException = e.getSQLException();
-        String sqlMessage = sqlException.getMessage();
-        int errorCode = sqlException.getErrorCode();
-        String sqlState = sqlException.getSQLState();
+        subHandleSQLException(sqlException, errors);
 
-        String title = "SQLException ";
-        errors.put(title + "error", "Database error occurred");
-        errors.put(title + "message", sqlMessage);
-        errors.put(title + "code", String.valueOf(errorCode));
-        errors.put(title + "state", sqlState);
+        logging(LoggingLevel.ERROR, errors);
+        return errors;
+    }
 
-        logging(LoggingLevel.ERROR, errors, e);
+    @ExceptionHandler(SQLException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, String> handleSQLException(SQLException e) {
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "Database error occurred");
+
+        subHandleSQLException(e, errors);
+
+        logging(LoggingLevel.ERROR, errors);
         return errors;
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> otherExceptionHandler(Exception e) {
-        Map<String, String> errors = getErrorsMapWithExceptionTitle(e);
+    public Map<String, String> handleOtherException(Exception e) {
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "Exception occurred");
 
-        errors.put(INFO, "Exception occurred");
+        subHandleException(e, errors);
 
-        String cause = "Unknown";
-        if (null != e.getCause()) {
-            cause = e.getCause().toString();
-        }
-
-        errors.put("Cause", cause);
-
-        logging(LoggingLevel.ERROR, errors, e);
+        logging(LoggingLevel.ERROR, errors);
         return errors;
     }
 
 
-    private Map<String, String> getErrorsMapWithExceptionTitle(Exception e) {
+
+    private void subHandleSQLException(SQLException sqlException, Map<String, String> errors) {
+        String title = "SQLException: ";
+        errors.put(title + "error", sqlException.getClass().toString());
+        errors.put(title + "message", sqlException.getMessage());
+        errors.put(title + "code", String.valueOf(sqlException.getErrorCode()));
+        errors.put(title + "state", sqlException.getSQLState());
+    }
+
+    private void subHandleHibernateConstraintViolationException(org.hibernate.exception.ConstraintViolationException  hibernateEcxeption, Map<String, String> errors) {
+        String title = "Hibernate ConstraintViolationException: ";
+        errors.put(title + "error", hibernateEcxeption.getClass().toString());
+        errors.put(title + "message", hibernateEcxeption.getSQLException().getMessage());
+        errors.put(title + "Violation of validation", hibernateEcxeption.getConstraintName());
+    }
+
+    private void subHandleException(Exception exception, Map<String, String> errors) {
+        String additionalMessage = exception.getMessage();
+        if (!errors.get(ERROR_FIELD_MESSAGE).equals(additionalMessage)) {
+            errors.put("Additional message", additionalMessage);
+        }
+
+        if (null != exception.getCause()) {
+            errors.put("Cause", exception.getCause().toString());
+        }
+    }
+
+
+
+    private Map<String, String> getErrorsMapWithExceptionTitle(Exception e, String info) {
         Map<String, String> errors = new LinkedHashMap<>();
 
-        errors.put("Exception", e.getClass().toString());
-        errors.put("Exception message", e.getMessage());
+        errors.put(ERROR_FIELD_INFO, info);
+        errors.put(ERROR_FIELD_EXCEPTION, e.getClass().toString());
+        errors.put(ERROR_FIELD_MESSAGE, e.getMessage());
 
         return errors;
     }
 
 
     private void logging(LoggingLevel level, Map<String, String> errors) {
-        errors.entrySet().forEach(entry -> logging(level, entry, null));
+        errors.entrySet().forEach(
+                entry -> logging(level, entry));
     }
 
-    private void logging(LoggingLevel level, Map<String, String> errors, Exception e) {
-        errors.entrySet().forEach(entry -> logging(level, entry, e));
-    }
-
-    private void logging(LoggingLevel level, Map.Entry<String, String> error, Exception e) {
-        String textForLogging = String.format("%s: %s", error.getKey(), error.getValue());
-        if (null != e) {
-            textForLogging = String.format("%s%n%s", textForLogging, e);
-        }
-        logging(level, textForLogging);
+    private void logging(LoggingLevel level, Map.Entry<String, String> error) {
+        logging(level, String.format("%s: %s", error.getKey(), error.getValue()));
     }
 
     private void logging(LoggingLevel level, String errorMessage) {
