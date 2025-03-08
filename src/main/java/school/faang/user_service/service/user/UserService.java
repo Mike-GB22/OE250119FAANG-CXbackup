@@ -22,26 +22,25 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PersonUserMapper personUserMapper;
-    private final UserMapper userMapper;
     private final CountryRepository countryRepository;
 
-    public List<UserDto> createUsers(List<Person> persons) {
-        List<UserDto> users = new ArrayList<>(persons.size());
+    public List<User> createUsers(List<Person> persons) {
+        List<User> users = new ArrayList<>(persons.size());
         for (Person person : persons) {
-            UserDto userDto = createUser(person);
-            users.add(userDto);
+            User user = createUser(person);
+            users.add(user);
         }
+
         return users;
     }
 
-    public UserDto createUser(Person person) {
+    public User createUser(Person person) {
         User user = personUserMapper.toUser(person);
         user.setCountry(
                 getOrCreateCountry(
                         person.getContactInfo().getAddress().getCountry()));
 
-        user = userRepository.save(user);
-        return userMapper.toDto(user);
+        return userRepository.save(user);
     }
 
 
