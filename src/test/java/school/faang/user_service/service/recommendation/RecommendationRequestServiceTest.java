@@ -8,10 +8,14 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import school.faang.user_service.dto.RecommendationRequestDto;
 import school.faang.user_service.dto.RequestFilterDto;
 import school.faang.user_service.entity.RequestStatus;
 import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.recommendation.RecommendationRequest;
+import school.faang.user_service.mapper.RecommendationRequestMapper;
+import school.faang.user_service.repository.SkillRepository;
+import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.recommendation.RecommendationRequestRepository;
 import school.faang.user_service.repository.recommendation.SkillRequestRepository;
 
@@ -25,17 +29,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class RecommendationRequestServiceTest {
 
-    @Mock
-    private RecommendationRequestRepository recommendationRequestRepository;
+    @Mock private RecommendationRequestRepository recommendationRequestRepository;
+    @Mock private SkillRequestRepository skillRequestRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private SkillRepository skillRepository;
 
-    @Mock
-    private SkillRequestRepository skillRequestRepository;
-
-    @InjectMocks
-    private RecommendationRequestService recommendationRequestService;
-
-    @Captor
-    private ArgumentCaptor<RecommendationRequest> recommendationRequestCaptor;
+    @InjectMocks private RecommendationRequestService recommendationRequestService;
 
     private RecommendationRequest recommendationRequest;
     private RecommendationRequest existingRequest;
@@ -71,17 +70,23 @@ class RecommendationRequestServiceTest {
 
     @Test
     void create_shouldSaveRecommendationRequest() {
-        lenient().when(recommendationRequestRepository.findLatestPendingRequest(anyLong(), anyLong()))
+        // 🔹 Настраиваем существование пользователей
+        when(userRepository.existsById(1L)).thenReturn(true);
+        when(userRepository.existsById(2L)).thenReturn(true);
+        // 🔹 Проверяем существование скиллов
+        when(skillRepository.countExisting(anyList())).thenReturn(1);
+        // 🔹 Проверяем, что не было предыдущих запросов
+        when(recommendationRequestRepository.findLatestPendingRequest(anyLong(), anyLong()))
                 .thenReturn(Optional.empty());
+        // 🔹 Заглушка для сохранения
         when(recommendationRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RecommendationRequest result = recommendationRequestService.create(recommendationRequest);
 
         assertNotNull(result);
         verify(recommendationRequestRepository).save(any());
-        verify(skillRequestRepository).saveAll(anyList());
+        verify(skillRequestRepository).saveAll(anyList());  // Убедимся, что скиллы сохраняются
     }
-
 
     @Test
     void create_shouldThrowExceptionWhenRequestIsNull() {
@@ -89,7 +94,7 @@ class RecommendationRequestServiceTest {
     }
 
     @Test
-    void getRequests_shouldFilterRequests() {
+    void getRequests_shouldFilterRequestsByRequesterId() {
         RequestFilterDto filter = new RequestFilterDto();
         filter.setRequesterId(1L);
 
@@ -150,6 +155,5 @@ class RecommendationRequestServiceTest {
 
         assertNotNull(exception);
         assertEquals("Cannot reject a request with status REJECTED", exception.getMessage());
-
     }
 }

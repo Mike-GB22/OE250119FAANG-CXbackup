@@ -9,6 +9,11 @@ import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.recommendation.RecommendationRequest;
 import school.faang.user_service.repository.recommendation.RecommendationRequestRepository;
 import school.faang.user_service.repository.recommendation.SkillRequestRepository;
+import school.faang.user_service.repository.UserRepository;
+import school.faang.user_service.repository.SkillRepository;
+import java.time.LocalDateTime;
+
+
 
 import java.util.List;
 import java.util.Objects;
@@ -21,12 +26,43 @@ public class RecommendationRequestService {
 
     private final RecommendationRequestRepository recommendationRequestRepository;
     private final SkillRequestRepository skillRequestRepository;
+    private final UserRepository userRepository;
+    private final SkillRepository skillRepository;
+
 
     public RecommendationRequest create(@NonNull RecommendationRequest recommendationRequest) {
+
+        if (!userRepository.existsById(recommendationRequest.getRequester().getId())) {
+            throw new IllegalArgumentException("Requester not found");
+        }
+
+        if (!userRepository.existsById(recommendationRequest.getReceiver().getId())) {
+            throw new IllegalArgumentException("Receiver not found");
+        }
+
+        List<Long> skillIds = recommendationRequest.getSkills().stream()
+                .map(skill -> skill.getId())
+                .collect(Collectors.toList());
+
+        if (skillRepository.countExisting(skillIds) < skillIds.size()) {
+            throw new IllegalArgumentException("One or more skills do not exist");
+        }
+
+        Optional<RecommendationRequest> latestRequest = recommendationRequestRepository.findLatestPendingRequest(
+                recommendationRequest.getRequester().getId(),
+                recommendationRequest.getReceiver().getId()
+        );
+
+        if (latestRequest.isPresent() && latestRequest.get().getCreatedAt().plusMonths(6).isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("Cannot request recommendation more than once in 6 months");
+        }
+
         RecommendationRequest savedRequest = recommendationRequestRepository.save(recommendationRequest);
         skillRequestRepository.saveAll(savedRequest.getSkills());
+
         return savedRequest;
     }
+
 
     public List<RecommendationRequest> getRequests(RequestFilterDto filter) {
         return recommendationRequestRepository.findAll().stream()
