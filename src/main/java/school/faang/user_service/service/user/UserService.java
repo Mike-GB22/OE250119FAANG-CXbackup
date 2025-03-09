@@ -6,6 +6,7 @@ import school.faang.user_service.dto.user.Person;
 import school.faang.user_service.dto.user.UserDto;
 import school.faang.user_service.entity.Country;
 import school.faang.user_service.entity.User;
+import school.faang.user_service.exception.DataValidationException;
 import school.faang.user_service.mapper.PersonUserMapper;
 import school.faang.user_service.mapper.UserMapper;
 import school.faang.user_service.repository.CountryRepository;
@@ -25,16 +26,24 @@ public class UserService {
     private final CountryRepository countryRepository;
 
     public List<User> createUsers(List<Person> persons) {
+        if (null == persons || persons.isEmpty()) {
+            return List.of();
+        }
+
         List<User> users = new ArrayList<>(persons.size());
         for (Person person : persons) {
-            User user = createUser(person);
-            users.add(user);
+            User user = createUser( person );
+            users.add( user );
         }
 
         return users;
     }
 
     public User createUser(Person person) {
+        if (null == person) {
+            throw new DataValidationException("Person have to be not null");
+        }
+
         User user = personUserMapper.toUser(person);
         user.setCountry(
                 getOrCreateCountry(

@@ -7,7 +7,6 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import school.faang.user_service.dto.user.Person;
@@ -30,6 +29,9 @@ public class PersonCsvMapper {
     }
 
     public List<Person> toPersons(MultipartFile file) throws IOException {
+        if (null == file || file.isEmpty()) {
+            throw new IllegalArgumentException();
+        }
 
         CsvSchema schema = getCsvSchema();
 
