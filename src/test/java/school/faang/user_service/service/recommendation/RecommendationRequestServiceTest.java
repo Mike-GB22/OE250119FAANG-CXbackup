@@ -70,15 +70,11 @@ class RecommendationRequestServiceTest {
 
     @Test
     void create_shouldSaveRecommendationRequest() {
-        // 🔹 Настраиваем существование пользователей
         when(userRepository.existsById(1L)).thenReturn(true);
         when(userRepository.existsById(2L)).thenReturn(true);
-        // 🔹 Проверяем существование скиллов
         when(skillRepository.countExisting(anyList())).thenReturn(1);
-        // 🔹 Проверяем, что не было предыдущих запросов
         when(recommendationRequestRepository.findLatestPendingRequest(anyLong(), anyLong()))
                 .thenReturn(Optional.empty());
-        // 🔹 Заглушка для сохранения
         when(recommendationRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RecommendationRequest result = recommendationRequestService.create(recommendationRequest);
