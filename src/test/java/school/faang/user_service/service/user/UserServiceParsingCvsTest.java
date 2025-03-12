@@ -11,7 +11,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import school.faang.user_service.dto.user.Person;
+import school.faang.user_service.dto.person.Address;
+import school.faang.user_service.dto.person.ContactInfo;
+import school.faang.user_service.dto.person.Person;
 import school.faang.user_service.entity.Country;
 import school.faang.user_service.entity.User;
 import school.faang.user_service.mapper.PersonUserMapper;
@@ -101,10 +103,10 @@ class UserServiceParsingCvsTest {
 
 
     private Person getPersonWithCountry(String country) {
-        Person.ContactInfo.Address address = new Person.ContactInfo.Address();
+        Address address = new Address();
         address.setCountry(country);
 
-        Person.ContactInfo contactInfo = new Person.ContactInfo();
+        ContactInfo contactInfo = new ContactInfo();
         contactInfo.setAddress(address);
 
         Person person = new Person();

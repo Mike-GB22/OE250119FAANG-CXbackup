@@ -3,14 +3,11 @@ package school.faang.user_service.mapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
-import school.faang.user_service.dto.user.Person;
-import school.faang.user_service.dto.user.UserDto;
+import school.faang.user_service.dto.person.Person;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

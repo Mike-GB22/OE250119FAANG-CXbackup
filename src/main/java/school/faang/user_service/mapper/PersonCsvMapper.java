@@ -9,7 +9,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import school.faang.user_service.dto.user.Person;
+import school.faang.user_service.dto.person.Person;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,8 +73,6 @@ public class PersonCsvMapper {
         Set<ConstraintViolation<Person>> violations = validator.validate(person);
 
         if (!violations.isEmpty()) {
-//            ConstraintViolation<Person> title = violations.iterator().next();
-//            title.
             throw new ConstraintViolationException("CsvMapper validation error", violations);
         }
     }

@@ -4,12 +4,11 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
-import school.faang.user_service.dto.user.Person;
+import school.faang.user_service.dto.person.Person;
 import school.faang.user_service.entity.User;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
