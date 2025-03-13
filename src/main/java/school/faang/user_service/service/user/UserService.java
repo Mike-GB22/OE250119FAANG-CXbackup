@@ -17,7 +17,6 @@ import school.faang.user_service.service.mentorship.MentorshipService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -41,9 +40,9 @@ public class UserService {
         log.info(LOG_MESSAGE_DEACTIVATING_STARTS, userId);
         User userToDeactivate = getUserFromDataBase(userId);
 
-        quitGoals(userId, userToDeactivate.getGoals());
-        stopAndDeleteEvent(userId);
-        quitMentorship(userId);
+        quitGoals(userToDeactivate);
+        stopAndDeleteEvent(userToDeactivate);
+        quitMentorship(userToDeactivate);
 
         userToDeactivate.setActive(false);
         userRepository.save(userToDeactivate);
@@ -53,34 +52,54 @@ public class UserService {
         return getUserFromDataBase(userId);
     }
 
-    private void quitGoals(Long userId, List<Goal> userGoals) {
-        List<Goal> goalsToDelete = findGoalsToDelete(userId, userGoals);
+    /**
+     * Method does two tasks:
+     * 1. Deletes goals where user is the only participant
+     * 2. Removes user from the participant's list of other goals
+     * @param user - user who is in the process of deactivation
+     */
+    private void quitGoals(User user) {
+        removeGoalsWhereUserIsTheOnlyAssigneeOrHasNoAssignee(user);
+        removeUserFromGoalParticipants(user);
+    }
+
+    private void removeGoalsWhereUserIsTheOnlyAssigneeOrHasNoAssignee(User user) {
+        List<Goal> goalsToDelete = findGoalsToDelete(user.getId(), user.getGoals());
 
         for (Goal goal : goalsToDelete) {
-            goalService.deleteGoal(goal.getId());
-            log.debug(LOG_MESSAGE_DELETE_GOAL, userId, goal.getDescription());
-        }
-
-        for (Goal goal : userGoals) {
-            List<User> usersOfGoalWithoutDeactivatedUser = goal.getUsers().stream()
-                    .filter(u -> !u.getId().equals(userId))
-                    .collect(Collectors.toList());
-            goal.setUsers(usersOfGoalWithoutDeactivatedUser);
-            goalService.updateGoal(userId, goal);
-            log.debug(LOG_MESSAGE_QUIT_PARTICIPATION_IN_GOALS, userId, goal.getDescription());
+            goalService.deleteGoal(goal);
+            log.debug(LOG_MESSAGE_DELETE_GOAL, user.getId(), goal.getDescription());
         }
     }
 
-    private void stopAndDeleteEvent(Long userId) {
-        List<Event> eventsToDelete = eventRepository.findAllByUserId(userId);
+    /**
+     * Removes user from the participant's list of goals the user is participating in
+     * @param user - user who is in the process of deactivation
+     */
+    private void removeUserFromGoalParticipants(User user) {
+
+        for (Goal goal : user.getGoals()) {
+                goal.getUsers().remove(user);
+                goalService.updateGoal(user.getId(), goal);
+                log.debug(LOG_MESSAGE_QUIT_PARTICIPATION_IN_GOALS, user.getId(), goal.getDescription());
+        }
+    }
+
+    private void stopAndDeleteEvent(User user) {
+        List<Event> eventsToDelete = user.getOwnedEvents();
         for (Event event : eventsToDelete) {
-            eventService.deleteEvent(event.getId());
-            log.debug(LOG_MESSAGE_DELETE_EVENTS, userId, event.getDescription());
+            List<User> eventAttendees = event.getAttendees();
+            event.getAttendees().removeAll(eventAttendees);
+            eventService.deleteEvent(event);
+            log.debug(LOG_MESSAGE_DELETE_EVENTS, user.getId(), event.getDescription());
         }
+        user.getOwnedEvents().removeAll(eventsToDelete);
+        eventsToDelete = user.getParticipatedEvents();
+        user.getParticipatedEvents().removeAll(eventsToDelete);
     }
 
-    private void quitMentorship(Long userId) {
-        mentorshipService.stopMentorship(userId);
+    private void quitMentorship(User user) {
+        mentorshipService.stopMentorship(user);
     }
 
     private User getUserFromDataBase(Long userId) {
@@ -97,7 +116,8 @@ public class UserService {
         List<Goal> goalsToDelete = new ArrayList<>();
         for (Goal goal : userGoals) {
             List<User> users = goal.getUsers();
-            if ((users.size() == 1) && (users.get(0).getId().equals(userId))) {
+            if (((users.isEmpty())) ||
+                    ((users.size() == 1) && (users.get(0).getId().equals(userId)))) {
                 goalsToDelete.add(goal);
             }
         }
