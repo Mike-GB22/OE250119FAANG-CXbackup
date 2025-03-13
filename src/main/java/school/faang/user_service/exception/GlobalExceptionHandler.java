@@ -30,7 +30,6 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = getErrorsMapWithExceptionTitle(e, INFO_VALIDATION_EXCEPTION);
 
         logging(Level.WARN, errors);
-
         return errors;
     }
 
@@ -56,12 +55,15 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleArgumentNotValidException(MethodArgumentNotValidException e) {
         Map<String, String> errors = getErrorsMapWithExceptionTitle(e, INFO_VALIDATION_EXCEPTION);
+        Level loggingLevel = Level.WARN;
 
-        e.getBindingResult()
-            .getFieldErrors()
-            .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+        if (isLoggable(loggingLevel)) {
+            e.getBindingResult()
+                    .getFieldErrors()
+                    .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
-        logging(Level.WARN, errors);
+            logging(loggingLevel, errors);
+        }
         return errors;
     }
 
@@ -69,14 +71,16 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleConstraintViolationException(jakarta.validation.ConstraintViolationException e) {
         Map<String, String> errors = getErrorsMapWithExceptionTitle(e, INFO_VALIDATION_EXCEPTION);
+        Level loggingLevel = Level.WARN;
 
-        e.getConstraintViolations()
-                .forEach(violation -> {
-                    errors.put(violation.getRootBeanClass().toString(), violation.getRootBean().toString());
-                    errors.put(violation.getPropertyPath().toString(), violation.getMessage());
-                });
-
-        logging(Level.WARN, errors);
+        if (isLoggable(loggingLevel)) {
+            e.getConstraintViolations()
+                    .forEach(violation -> {
+                        errors.put(violation.getRootBeanClass().toString(), violation.getRootBean().toString());
+                        errors.put(violation.getPropertyPath().toString(), violation.getMessage());
+                    });
+            logging(loggingLevel, errors);
+        }
         return errors;
     }
 
@@ -84,21 +88,24 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleConstraintViolationException(org.springframework.dao.DataIntegrityViolationException e) {
         Map<String, String> errors = getErrorsMapWithExceptionTitle(e, INFO_VALIDATION_EXCEPTION);
+        Level loggingLevel = Level.WARN;
 
-        Throwable rootCause = e.getRootCause();
-        if (null != rootCause) {
-            errors.put("DataIntegrityViolationException: Root cause", rootCause.toString());
+        if (isLoggable(loggingLevel)) {
+            Throwable rootCause = e.getRootCause();
+            if (null != rootCause) {
+                errors.put("DataIntegrityViolationException: Root cause", rootCause.toString());
 
-            if (rootCause instanceof org.hibernate.exception.ConstraintViolationException hibernateException) {
-                subHandleHibernateConstraintViolationException(hibernateException, errors);
-            } else if (rootCause instanceof java.sql.SQLException sqlException) {
-                subHandleSQLException(sqlException, errors);
-            } else {
-                subHandleException(e, errors);
+                if (rootCause instanceof org.hibernate.exception.ConstraintViolationException hibernateException) {
+                    subHandleHibernateConstraintViolationException(hibernateException, errors);
+                } else if (rootCause instanceof java.sql.SQLException sqlException) {
+                    subHandleSQLException(sqlException, errors);
+                } else {
+                    subHandleException(e, errors);
+                }
             }
-        }
 
-        logging(Level.WARN, errors);
+            logging(Level.WARN, errors);
+        }
         return errors;
     }
 
@@ -106,11 +113,14 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleJDBCException(org.hibernate.JDBCException e) {
         Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "JDBC exception occurred");
+        Level loggingLevel = Level.WARN;
 
-        java.sql.SQLException sqlException = e.getSQLException();
-        subHandleSQLException(sqlException, errors);
+        if (isLoggable(loggingLevel)) {
+            java.sql.SQLException sqlException = e.getSQLException();
+            subHandleSQLException(sqlException, errors);
 
-        logging(Level.ERROR, errors);
+            logging(Level.ERROR, errors);
+        }
         return errors;
     }
 
@@ -118,10 +128,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleSQLException(SQLException e) {
         Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "Database error occurred");
+        Level loggingLevel = Level.ERROR;
 
-        subHandleSQLException(e, errors);
+        if (isLoggable(loggingLevel)) {
+            subHandleSQLException(e, errors);
 
-        logging(Level.ERROR, errors);
+            logging(loggingLevel, errors);
+        }
         return errors;
     }
 
@@ -129,10 +142,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleOtherException(Exception e) {
         Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "Exception occurred");
+        Level loggingLevel = Level.ERROR;
 
-        subHandleException(e, errors);
+        if (isLoggable(loggingLevel)) {
+            subHandleException(e, errors);
 
-        logging(Level.ERROR, errors);
+            logging(Level.ERROR, errors);
+        }
         return errors;
     }
 
@@ -179,5 +195,15 @@ public class GlobalExceptionHandler {
 
     private void logging(org.slf4j.event.Level level, Map<String, String> errors) {
         errors.forEach((key, value) -> log.makeLoggingEventBuilder(level).log("{}: {}", key, value));
+    }
+
+    private boolean isLoggable(org.slf4j.event.Level level) {
+        return switch (level) {
+            case TRACE -> log.isTraceEnabled();
+            case DEBUG -> log.isDebugEnabled();
+            case INFO -> log.isInfoEnabled();
+            case WARN -> log.isWarnEnabled();
+            case ERROR -> log.isErrorEnabled();
+        };
     }
 }
