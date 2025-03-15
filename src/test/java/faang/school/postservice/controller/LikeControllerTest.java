@@ -2,7 +2,6 @@ package faang.school.postservice.controller;
 
 import faang.school.postservice.config.context.UserContext;
 import faang.school.postservice.dto.like.LikeDto;
-import faang.school.postservice.exception.DataValidationException;
 import faang.school.postservice.mapper.LikeMapper;
 import faang.school.postservice.service.LikeService;
 import org.junit.Assert;
@@ -13,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @ExtendWith(MockitoExtension.class)
 public class LikeControllerTest {
@@ -45,7 +45,7 @@ public class LikeControllerTest {
 
     @Test
     public void testLikePostWithInvalidSetLikeToDto() {
-        Assert.assertThrows(DataValidationException.class,
+        Assert.assertThrows(MethodArgumentNotValidException.class,
                 () -> likeController.setLikeToPost(likeDtoInvalidPostId));
     }
 
@@ -58,7 +58,7 @@ public class LikeControllerTest {
 
     @Test
     public void testLikeCommentWithInvalidSetLikeToDto() {
-        Assert.assertThrows(DataValidationException.class,
+        Assert.assertThrows(MethodArgumentNotValidException.class,
                 () -> likeController.setLikeToComment(likeDtoInvalidCommentId));
     }
 
