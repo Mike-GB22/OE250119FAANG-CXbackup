@@ -10,13 +10,13 @@ import java.util.stream.Stream;
 public class UserFilterByNamePattern implements UserFilter {
     @Override
     public boolean isApplicable(UserFilterDto presetDto) {
-        return presetDto.getUsernamePattern() != null;
+        return presetDto.getNamePattern() != null;
     }
 
     @Override
     public Stream<User> apply(Stream<User> users, UserFilterDto presetDto) {
         return users
                 .filter(user -> user.getUsername().toLowerCase()
-                        .contains(presetDto.getUsernamePattern().toLowerCase()));
+                        .contains(presetDto.getNamePattern().toLowerCase()));
     }
 }
