@@ -19,8 +19,8 @@ class UserFilterByNamePatternTest {
     private static final String CONTENT3 = "Fedor Fedorov";
 
     private static final UserFilterDto PRESET0 = new UserFilterDto();
-    private static final UserFilterDto PRESET1 = UserFilterDto.builder().usernamePattern(PATTERN1).build();
-    private static final UserFilterDto PRESET2 = UserFilterDto.builder().usernamePattern(PATTERN2).build();
+    private static final UserFilterDto PRESET1 = UserFilterDto.builder().namePattern(PATTERN1).build();
+    private static final UserFilterDto PRESET2 = UserFilterDto.builder().namePattern(PATTERN2).build();
 
     private static UserFilter filter;
 

@@ -12,7 +12,6 @@ import school.faang.user_service.filter.user.UserFilterByNamePattern;
 import school.faang.user_service.repository.UserRepository;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doReturn;
@@ -20,7 +19,7 @@ import static org.mockito.Mockito.doReturn;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
     private static final String PATTERN = "Ivan";
-    private static final UserFilterDto PRESET = UserFilterDto.builder().usernamePattern(PATTERN).build();
+    private static final UserFilterDto PRESET = UserFilterDto.builder().namePattern(PATTERN).build();
     private static final String CONTENT1 = "Ivan Ivanov";
     private static final String CONTENT2 = "Fedor Ivanov";
     private static final String CONTENT3 = "Fedor Fedorov";

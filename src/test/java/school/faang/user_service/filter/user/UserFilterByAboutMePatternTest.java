@@ -19,8 +19,8 @@ class UserFilterByAboutMePatternTest {
     private static final String CONTENT3 = "Other Text Pattern3";
 
     private static final UserFilterDto PRESET0 = new UserFilterDto();
-    private static final UserFilterDto PRESET1 = UserFilterDto.builder().aboutMePattern(PATTERN1).build();
-    private static final UserFilterDto PRESET2 = UserFilterDto.builder().aboutMePattern(PATTERN2).build();
+    private static final UserFilterDto PRESET1 = UserFilterDto.builder().aboutPattern(PATTERN1).build();
+    private static final UserFilterDto PRESET2 = UserFilterDto.builder().aboutPattern(PATTERN2).build();
 
     private static UserFilter filter;
 
