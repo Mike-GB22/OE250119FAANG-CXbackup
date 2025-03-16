@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import school.faang.user_service.dto.user.UserDto;
 import school.faang.user_service.exception.DataValidationException;
+import school.faang.user_service.exception.NotFoundException;
 import school.faang.user_service.mapper.UserMapper;
 import school.faang.user_service.service.UserService;
 
@@ -31,13 +32,13 @@ public class GetUserController {
 
     @GetMapping("/{userId}")
     @ResponseStatus(HttpStatus.OK)
-    UserDto getUser(@PathVariable long id) {
+    UserDto getUser(@PathVariable(value = "userId") long id) {
         validateUserId(id);
 
         return userService.getUser(id)
                 .map(userMapper::toDto)
                 .orElseThrow(
-                        () -> new IllegalArgumentException(String.format(USER_NOT_FOUND_PATTERN, id)));
+                        () -> new NotFoundException(String.format(USER_NOT_FOUND_PATTERN, id)));
     }
 
     @PostMapping({"", "/"})
