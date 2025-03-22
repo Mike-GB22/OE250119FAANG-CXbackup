@@ -35,9 +35,10 @@ class GlobalExceptionHandlerTest {
     private static final DataValidationException dataValidationException = new DataValidationException("DataValidationException");;
     private static final EntityNotFoundException entityNotFoundException = new EntityNotFoundException("EntityNotFoundException");
     private static final IllegalArgumentException illegalArgumentException = new IllegalArgumentException("IllegalArgumentException");
+    private static final NotFoundException notFoundException = new NotFoundException("NotFoundException");
     private static final org.springframework.dao.DataIntegrityViolationException dataIntegrityViolationException = new DataIntegrityViolationException("DataIntegrityViolationException");
     private static final SQLException sqlException = new SQLException("SQLException");
-    private final static MethodArgumentNotValidException methodArgumentNotValidException = getMethodArgumentNotValidException();
+    private static final MethodArgumentNotValidException methodArgumentNotValidException = getMethodArgumentNotValidException();
     private static final Exception exception = new Exception("Exception");
     @Mock
     private static jakarta.validation.ConstraintViolationException jakartaConstraintViolationException;
@@ -61,6 +62,12 @@ class GlobalExceptionHandlerTest {
     void illegalArgumentExceptionHandler() {
         assertErrorsMap(
                 globalHandler.handleIllegalArgumentException(illegalArgumentException));
+    }
+
+    @Test
+    void notFoundExceptionHandler() {
+        assertErrorsMap(
+                globalHandler.handleNotFoundException(notFoundException));
     }
 
     @Test

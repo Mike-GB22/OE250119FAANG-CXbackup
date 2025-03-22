@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
-//@RestControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final String ERROR_FIELD_INFO = "Info";
@@ -46,6 +46,15 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleIllegalArgumentException(IllegalArgumentException e) {
         Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "Illegal argument exception occurred");
+
+        logging(Level.WARN, errors);
+        return errors;
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleNotFoundException(NotFoundException e) {
+        Map<String, String> errors = getErrorsMapWithExceptionTitle(e, "Not found exception occurred");
 
         logging(Level.WARN, errors);
         return errors;
