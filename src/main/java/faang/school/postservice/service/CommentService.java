@@ -1,11 +1,15 @@
 package faang.school.postservice.service;
 
+import faang.school.postservice.exception.NotFoundException;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.CommentRepository;
+import jakarta.persistence.Column;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,7 +17,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CommentService {
 
-    private static final String POST_NOT_FOUND_PATTERN = "Post with ID: %s not found";
     private static final String COMMENT_NOT_FOUND_PATTERN = "Comment with ID: %s not found";
 
     private final PostService postService;
@@ -21,39 +24,70 @@ public class CommentService {
 
     public Comment getComment(Long commentId) {
         return commentRepository.findById(commentId)
-                        .orElseThrow(() -> new IllegalArgumentException(COMMENT_NOT_FOUND_PATTERN));
+                        .orElseThrow(() -> new NotFoundException(
+                                String.format(COMMENT_NOT_FOUND_PATTERN, commentId)));
     }
 
     public List<Comment> getComments(Long postId) {
-        return commentRepository.findAllByPostId(postId);
+        List<Comment> comments = commentRepository.findAllByPostId(postId);
+        comments.sort((l, r) -> (int) (r.getId() - l.getId()));
+
+        return comments;
     }
 
     public Comment createComment(Long postId, Comment comment) {
-//        Post post = postService.getPost(postId).orElseThrow(
-//                () -> new IllegalArgumentException(
-//                        String.format(POST_NOT_FOUND_PATTERN, postId)));
-        System.out.println("\n\n ----0----------------------- " + postId);
-//        Optional<Post> postOpt = postService.getPost(postId);
-        System.out.println("\n\n ----1----------------------- ");
-//        Post post = postOpt.orElse(new Post());
         Post post = postService.getPost(postId);
-        System.out.println("\n\n ----2----------------------- " + post);
-
         comment.setPost(post);
-
-        System.out.println("\n\n -------------2222-------------- " + post);
+        comment.setId(null);
 
         return commentRepository.save(comment);
     }
 
-    public Comment updateComment(Long commentId, String message) {
-        return new Comment();
+    public Comment updateComment(Long commentId, Comment updatesForComment) {
+        Comment originalComment = getComment(commentId);
+        updateCommentFromUpdates(originalComment, updatesForComment).ifPresent(commentRepository::save);
+
+        return originalComment;
     }
 
     public boolean deleteComment(Long commentId) {
-        return true;
+        Comment originalComment = getComment(commentId);
+        if (null != originalComment) {
+            commentRepository.delete(getComment(commentId));
+            return true;
+        }
+        return false;
     }
 
+    private Optional<Comment> updateCommentFromUpdates(Comment original, Comment updates) {
+        boolean commentWasUpdated = false;
 
+        String newContent = updates.getContent();
+        if (null != newContent && !newContent.equals(original.getContent())) {
+            original.setContent(newContent);
+            commentWasUpdated = true;
+        }
 
+        String newLargeImageFileKey = updates.getLargeImageFileKey();
+        String oldLargeImageFileKey = original.getLargeImageFileKey();
+        if ((null == newLargeImageFileKey && null != oldLargeImageFileKey)
+                || (null != newLargeImageFileKey && !newLargeImageFileKey.equals(original.getLargeImageFileKey()))) {
+            original.setLargeImageFileKey(newLargeImageFileKey);
+            commentWasUpdated = true;
+        }
+
+        String newSmallImageFileKey = updates.getSmallImageFileKey();
+        String oldSmallImageFileKey = original.getSmallImageFileKey();
+        if ((null == newSmallImageFileKey && null != oldSmallImageFileKey)
+                || (null != newSmallImageFileKey && !newSmallImageFileKey.equals(original.getSmallImageFileKey()))) {
+            original.setSmallImageFileKey(newSmallImageFileKey);
+            commentWasUpdated = true;
+        }
+
+        if (commentWasUpdated) {
+            return Optional.of(original);
+        }
+
+        return Optional.empty();
+    }
 }

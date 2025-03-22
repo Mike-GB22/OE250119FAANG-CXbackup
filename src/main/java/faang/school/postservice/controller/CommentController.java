@@ -5,6 +5,7 @@ import faang.school.postservice.dto.comment.CommentDto;
 import faang.school.postservice.mapper.CommentMapper;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.service.CommentService;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -55,10 +56,10 @@ public class CommentController {
     @PostMapping("/post/{postId}")
     @ResponseStatus(HttpStatus.CREATED)
     public CommentDto createComment(@Positive(message = ID_ERROR_MESSAGE) @PathVariable Long postId
-            , @NotNull @RequestBody CommentDto commentDto) {
+            , @Validated @NotEmpty @RequestBody CommentDto commentDto) {
+        // commentDto.setAuthorId(userContext.getUserId());
 
-        Comment comment = Comment.builder().content(commentDto.getContent()).build();
-//        Comment comment = commentMapper.toEntity(commentDto);
+        Comment comment = commentMapper.toEntity(commentDto);
         return commentMapper.toDto(
                 commentService.createComment(postId, comment));
     }
@@ -66,15 +67,17 @@ public class CommentController {
     @PutMapping("/{commentId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public CommentDto updateComment(@Positive(message = ID_ERROR_MESSAGE) @PathVariable Long commentId
-            , @NotNull @RequestBody CommentDto commentDto) {
+            , @NotNull @RequestBody CommentDto editedCommentDto) {
 
-        return null;
+        Comment editedComment = commentMapper.toEntity(editedCommentDto);
+        return commentMapper.toDto(
+                commentService.updateComment(commentId, editedComment));
     }
 
     @DeleteMapping("/{commentId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public boolean deleteComment(@Positive(message = ID_ERROR_MESSAGE) @PathVariable Long commentId) {
 
-        return false;
+        return commentService.deleteComment(commentId);
     }
 }

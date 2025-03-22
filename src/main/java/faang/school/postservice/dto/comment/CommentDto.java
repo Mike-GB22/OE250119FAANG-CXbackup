@@ -1,5 +1,6 @@
 package faang.school.postservice.dto.comment;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -20,8 +21,8 @@ public class CommentDto {
 
     private Long id;
 
-    @NotNull
-    @Size(max = 4096, message = "Comment can be maximal 4096 characters")
+    @NotBlank(message = "Comment must have content")
+    @Size(min = 2, max = 4096, message = "Comment can be minimal 2 and maximal 4096 characters")
     private String content;
 
     @Positive(message = "Comment must have authorId")
