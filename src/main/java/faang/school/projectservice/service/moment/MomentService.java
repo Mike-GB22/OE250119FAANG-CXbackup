@@ -80,7 +80,6 @@ public class MomentService {
                 .orElseThrow(() -> {
                     return new IllegalArgumentException("Moment with Id " + momentId + " not found");
                 });
-        momentMapper.updateMomentFromDto(momentDto, moment);
         updateMomentFields(moment, momentDto);
         return momentRepository.save(moment);
     }
