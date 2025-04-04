@@ -18,6 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +28,7 @@ public class FileService {
     private static final String DEFAULT_USER_ID = "DEFAULT";
     private static final String SMALL_IMAGE_KEY_PATTERN = "small/%s";
 
-    private static final List<String> IMAGE_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".wbmp");
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".wbmp");
     private static final int MAX_SIDE_SIZE_OF_SMALL_IMAGE_PX = 170;
     private static final int MAX_SIDE_SIZE_OF_IMAGE_PX = 1080;
 
@@ -112,13 +113,9 @@ public class FileService {
 
     private boolean isFileAnImage(MultipartFile file) {
         String lowerCaseName = file.getOriginalFilename().toLowerCase();
-        for (String extension : IMAGE_EXTENSIONS) {
-            if (lowerCaseName.endsWith(extension)) {
-                return true;
-            }
-        }
+        String fileExtension = lowerCaseName.substring(lowerCaseName.lastIndexOf("."));
 
-        return false;
+        return IMAGE_EXTENSIONS.contains(fileExtension);
     }
 
 
