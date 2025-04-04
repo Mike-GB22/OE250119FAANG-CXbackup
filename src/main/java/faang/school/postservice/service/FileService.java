@@ -17,7 +17,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Set;
 
 @Service
@@ -146,9 +145,13 @@ public class FileService {
     }
 
     private String createFileKey(String fileName) {
-        fileName = fileName.replaceAll("[^\\p{L}\\p{N}._\\-\\— ]", "_");
         String pathName = DEFAULT_USER_ID;
+        if (null != userContext && userContext.getUserId() == 0) {
+            pathName = String.valueOf(userContext.getUserId());
+        }
+
         String timeStamp = String.valueOf(System.nanoTime());
+        fileName = fileName.replaceAll("[^\\p{L}\\p{N}._\\-\\— ]", "_");
 
         return String.format(FILE_KEY_PATTERN, pathName, timeStamp, fileName);
     }
